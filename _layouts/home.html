@@ -1,0 +1,27 @@
+---
+layout: default
+---
+
+<div class="landing">
+    <!-- <h1>🚀 Threads of Thought</h1>
+    <p>This is my digital lab notebook exploring:</p>
+    <ul>
+        <li>C++ systems programming</li>
+        <li>Computer vision</li>
+        <li>Deep learning with rigor</li>
+    </ul>
+
+    <hr> -->
+
+    <h2>Latest Posts</h2>
+    <ul class="post-list">
+        {% for post in site.posts %}
+        <li>
+            <span class="post-meta">{{ post.date | date: "%B %d, %Y" }}</span><br>
+            <a class="post-link" href="{{ post.url | relative_url }}">
+                {{ post.title | escape }}
+            </a>
+        </li>
+        {% endfor %}
+    </ul>
+</div>
