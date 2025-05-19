@@ -3,20 +3,9 @@ layout: page
 title: About
 permalink: /about/
 ---
+I'm Onkar Mahajan, a C++ systems programmer based in Bangalore, India. With over 15 years of experience building performance-critical software across domains, I use this blog to share clear, first-principles insights into modern C++, systems programming, and practical software craftsmanship. For collaborations or questions, feel free to reach out at onnmprof@gmail.com.
 
-<!-- This is the base Jekyll theme. You can find out more info about customizing your Jekyll theme, as well as basic Jekyll usage documentation at [jekyllrb.com](https://jekyllrb.com/)
-
-You can find the source code for Minima at GitHub:
-[jekyll][jekyll-organization] /
-[minima](https://github.com/jekyll/minima)
-
-You can find the source code for Jekyll at GitHub:
-[jekyll][jekyll-organization] /
-[jekyll](https://github.com/jekyll/jekyll)
-
-
-[jekyll-organization]: https://github.com/jekyll -->
-## 🧠 Who Am I ?
+<!-- ## 🧠 Who Am I ?
 
 Hi — I’m Onkar (Mahajan), a systems thinker based in Bangalore, India. I’ve always been fascinated by how machines compute, perceive, and learn — not just in theory, but in the real, gritty world of systems and silicon. I don’t just enjoy learning how things work; I’m driven to **build things that matter**. To me, theory isn’t the end — it’s the fuel that powers practical, intelligent creation.
 
@@ -39,5 +28,5 @@ This blog reflects my journey toward building intelligent, vision-enabled system
 
 While professional work often demands structure and delivery, this space is where I return to curiosity. I'm especially drawn to the intersection of **real-time systems and machine intelligence** — building machines that don’t just compute, but also _see_, _learn_, and _act_.
 
-If you're driven to build intelligent machine vision systems, and seek the skills, tools, and techniques that make it possible — this space is for you.
+If you're driven to build intelligent machine vision systems, and seek the skills, tools, and techniques that make it possible — this space is for you. -->
 
