@@ -1,4 +1,4 @@
 ---
 layout: home
-title: Threads of Thought
+title: Hack. Crash. Transcend.
 ---

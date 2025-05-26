@@ -18,7 +18,7 @@
 # You can create any custom variable you would like, and they will be accessible
 # in the templates via {{ site.myvariable }}.
 
-title: Threads of Thought
+title: Hack. Crash. Transcend.
 # email: onnmprof@gmail.com
 description: >- # this means to ignore newlines until "baseurl:"
   This blog is a collection of my notes and reflections in the pursuit of excellence across Deep Learning, Computer Vision, Mathematics, and Computer Systems.
