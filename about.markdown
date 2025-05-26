@@ -3,7 +3,7 @@ layout: page
 title: About
 permalink: /about/
 ---
-I'm Onkar Mahajan, a C++ systems programmer based in Bangalore, India. With over 15 years of experience building performance-critical software across domains, I use this blog to share clear, first-principles insights into modern C++, systems programming, and practical software craftsmanship.
+I'm Onkar Mahajan, a C++ systems programmer based in Bangalore, India. With over 15 years of experience building performance-critical software across domains, I use this blog to share clear, first-principles insights into modern C++, systems programming, and practical software craftsmanship.  
 👉 For collaborations or questions, feel free to connect with me on [**LinkedIn**](https://www.linkedin.com/in/onkarnm).
 
 
