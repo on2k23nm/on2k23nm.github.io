@@ -222,13 +222,13 @@ But under the surface, it represents a foundational shift in how C++ handles saf
 Here’s why {} isn’t just useful — it’s essential.
 
 * 🛑 Safety and Bug Prevention  
-Silent narrowing conversions were a significant source of subtle, hard-to-detect bugs. For example, int x = 3.9; would silently truncate 3.9 to 3, potentially leading to incorrect calculations — without any compiler warning. This kind of implicit data loss is extremely dangerous in critical applications where precision and correctness matter.
+Silent narrowing conversions were a significant source of subtle, hard-to-detect bugs. For example, `int x = 3.9;` would silently truncate `3.9` to `3`, potentially leading to incorrect calculations — without any compiler warning. This kind of implicit data loss is extremely dangerous in critical applications where precision and correctness matter.
 
 * ⚠️ Compile-Time Error vs. Runtime Bug  
-List initialization transforms these silent bugs into explicit compiler errors. If you try int x{3.9};, the compiler immediately flags it as illegal. What used to slip through and potentially cause late-stage failures or incorrect behavior at runtime is now caught instantly at compile time, making code more reliable and safer by default.
+List initialization transforms these silent bugs into explicit compiler errors. If you try `int x{3.9};`, the compiler immediately flags it as illegal. What used to slip through and potentially cause late-stage failures or incorrect behavior at runtime is now caught instantly at compile time, making code more reliable and safer by default.
 
 * 🔐 Fundamental Type Safety  
-For decades, C++ tolerated unsafe implicit conversions as a legacy of the C language. List initialization finally addresses this design flaw by enforcing strict type safety even for fundamental types like int, float, and char. It brings C++ more in line with the safety expectations of modern systems programming — without compromising performance.
+For decades, C++ tolerated unsafe implicit conversions as a legacy of the C language. List initialization finally addresses this design flaw by enforcing strict type safety even for fundamental types like `int`, `float`, and `char`. It brings C++ more in line with the safety expectations of modern systems programming — without compromising performance.
 
 So while `{}` might look minimal, its impact is anything but. It closes the door on dangerous old habits and opens the way for clearer, safer, and more predictable code — making it one of the most important features to understand and adopt in modern C++ development.
 
