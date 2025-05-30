@@ -663,19 +663,16 @@ Don’t casually switch between `()` and `{}` — their meanings diverge especia
 
 List initialization may look simple on the surface — just curly braces, right?
 
-But under the hood, it enforces **type safety**, eliminates the **most vexing parse**, and plays a **central role in overload resolution** and **constructor selection**. It’s one of the best things C++11 gave us — a modern tool that encourages safe, readable, and bug-free code.
+But under the hood, it enforces type safety, eliminates the most vexing parse, and plays a central role in overload resolution and constructor selection. It’s one of the best things C++11 gave us — a modern tool that encourages safe, readable, and bug-free code.
 
 **Key takeaways:**
-- Use `{}` when you want to **prevent narrowing conversions**
-- Be cautious around **initializer_list vs regular constructors**
+- Use `{}` when you want to prevent narrowing conversions
+- Be cautious around initializer_list vs regular constructors
 - Avoid ambiguity by keeping types in the brace list uniform
-- Prefer `{}` over `=` or `()` for **uniformity and clarity**
+- Prefer `{}` over `=` or `()` for uniformity and clarity
 - Understand the difference between `T x{}` and `T x = {}` — especially with `explicit` constructors
 
-Mastering `{}` isn't just about syntax — it's about thinking in **modern C++**.
-
-
----
+Mastering `{}` isn't just about syntax — it's about thinking in modern C++.
 
 <!-- ✍️ *If you found this useful, consider sharing or leaving feedback. Happy mastering C++ !* -->
 
