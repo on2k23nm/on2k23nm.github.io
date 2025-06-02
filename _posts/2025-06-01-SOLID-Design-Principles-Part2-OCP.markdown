@@ -13,7 +13,7 @@ Each principle in this series is explored not just by definition, but through **
 
 In **Part 1**, we explored the **Single Responsibility Principle** and saw how splitting responsibilities across well-defined units leads to more testable and maintainable systems.
 
-👉 If you missed it, [read it here](../../06/01/SOLID-Design-Principles-Part1-SRP.html)
+👉 If you missed it, [read it here](/modern-cpp/2025/06/01/SOLID-Design-Principles-Part1-SRP.html)
 
 Today, we move to the next pillar: the **Open/Closed Principle**.
 
