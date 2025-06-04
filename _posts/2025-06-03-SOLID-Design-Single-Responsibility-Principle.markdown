@@ -341,3 +341,7 @@ By embracing the Single Responsibility Principle, you lay the groundwork for bui
 In the next installment of our SOLID series, we will delve into the [Open/Closed Principle (OCP)](./SOLID-Design-Open-Closed-Principle.html), exploring how to design your code to be open for extension but closed for modification—a powerful concept that builds directly on the single responsibilities we've established here. Stay tuned!
 
 ⭐ ⭐ ⭐
+
+---
+
+*Like the article? Let’s connect on [LinkedIn](https://www.linkedin.com/in/onkarnm/).* 
