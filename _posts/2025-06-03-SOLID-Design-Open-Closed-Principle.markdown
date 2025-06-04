@@ -439,6 +439,10 @@ However, we also discussed important considerations to avoid common pitfalls suc
 
 By embracing the Open/Closed Principle, you empower your codebase to evolve gracefully. It encourages a proactive approach to design, leading to more robust, adaptable, and maintainable software systems that can truly stand the test of time and changing requirements.
 
-Stay tuned for the next part of our series, where we will explore the **Liskov Substitution Principle (LSP)**, another cornerstone of object-oriented design!
+---
+
+### 🚀 What's Next?
+
+In the next installment of our SOLID series, we will delve into the **Liskov Substitution Principle (LSP)**, exploring _how subclasses should be substitutable for their base classes without altering the correctness of the program_—a powerful concept that builds directly on the robust designs we've established here. Stay tuned!
 
 ⭐ ⭐ ⭐
