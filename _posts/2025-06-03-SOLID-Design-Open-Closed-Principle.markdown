@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "✨Open/Closed Principle (OCP) Explained | SOLID Design Principles"
+title: "✨Open/Closed Principle Explained | SOLID Design Principles"
 date: 2025-06-03 00:29:02 +0530
 categories: software-design
 # hero_image: /assets/images/ocp_hero.jpg # Or whatever your image path is
