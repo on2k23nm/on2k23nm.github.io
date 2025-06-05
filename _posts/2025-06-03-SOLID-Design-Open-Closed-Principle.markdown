@@ -5,6 +5,7 @@ date: 2025-06-03 00:29:02 +0530
 categories: software-design
 # hero_image: /assets/images/ocp_hero.jpg # Or whatever your image path is
 # thumbnail: /assets/images/ocp_thumbnail.jpg # For smaller previews/cards
+description: Master the Open/Closed Principle (OCP) of SOLID design Principles. Learn to build software entities that are open for extension but closed for modification. Examples included!
 ---
 
 🚀 **About This Blog Series**

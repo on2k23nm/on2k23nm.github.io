@@ -5,6 +5,7 @@ date: 2025-06-03 00:29:01 +0530
 categories: software-design
 # hero_image: /assets/images/ocp_hero.jpg # Or whatever your image path is
 # thumbnail: /assets/images/ocp_thumbnail.jpg # For smaller previews/cards
+description: Understand the Single Responsibility Principle (SRP) in SOLID design Principles. Learn how focusing on one responsibility per class leads to more robust and maintainable code.
 ---
 
 # 🌟 Introduction: The Foundation of Good Design
