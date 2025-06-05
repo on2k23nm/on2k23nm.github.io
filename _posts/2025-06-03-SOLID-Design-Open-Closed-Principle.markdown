@@ -445,8 +445,8 @@ By embracing the Open/Closed Principle, you empower your codebase to evolve grac
 
 In the next installment of our SOLID series, we will delve into the **Liskov Substitution Principle (LSP)**, exploring _how subclasses should be substitutable for their base classes without altering the correctness of the program_—a powerful concept that builds directly on the robust designs we've established here. Stay tuned!
 
-⭐ ⭐ ⭐
-
 ---
 
 *Like the article? Let’s connect on [LinkedIn](https://www.linkedin.com/in/onkarnm/).* 
+
+⭐ ⭐ ⭐
