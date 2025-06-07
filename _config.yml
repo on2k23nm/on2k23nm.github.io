@@ -19,14 +19,12 @@
 # in the templates via {{ site.myvariable }}.
 
 title: Hack. Crash. Transcend.
-# email: onnmprof@gmail.com
-description: >- # this means to ignore newlines until "baseurl:"
-  This blog is a collection of my notes and reflections in the pursuit of excellence across Deep Learning, Computer Vision, Mathematics, and Computer Systems.
-  Each post is a step in my journey to understand deeply, build deliberately, and contribute to the creation of world-class intelligent systems with clarity, purpose, and craft.
-# baseurl: "" # the subpath of your site, e.g. /blog
-# url: "" # the base hostname & protocol for your site, e.g. http://example.com
-# twitter_username: jekyllrb
-# github_username:  jekyll
+email: onnmprof@gmail.com
+description: "This blog is a collection of my notes and reflections in the pursuit of excellence across Deep Learning, Computer Vision, Mathematics, and Computer Systems."
+# baseurl: "https://on2k23nm.github.io" # the subpath of your site, e.g. /blog
+# url: "https://on2k23nm.github.io"
+twitter_username: tweet2Onkar
+github_username:  on2k23nm
 
 # Build settings
 theme: minima
