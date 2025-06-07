@@ -11,7 +11,7 @@ description: Explore the Liskov Substitution Principle (LSP) in SOLID design Pri
 
 ## 🌟 Introduction
 
-Welcome back to our ongoing exploration of the SOLID design principles! In this series, we're delving into the foundational concepts that guide us toward crafting software that is not only functional but also robust, maintainable, and scalable. So far, we've covered the [Single Responsibility Principle (SRP)](../../06/03/SOLID-Design-Single-Responsibility-Principle.html), which helps us keep our classes focused, and the [Open/Closed Principle (OCP)](../../06/03/SOLID-Design-Open-Closed-Principle.html), which encourages us to design systems that are extensible without requiring modification to existing code.
+Welcome back to our ongoing exploration of the SOLID design principles! In this series, we're delving into the foundational concepts that guide us toward crafting software that is not only functional but also robust, maintainable, and scalable. So far, we've covered the [Single Responsibility Principle (SRP)](../../06/02/SOLID-Design-Single-Responsibility-Principle.html), which helps us keep our classes focused, and the [Open/Closed Principle (OCP)](../../06/02/SOLID-Design-Open-Closed-Principle.html), which encourages us to design systems that are extensible without requiring modification to existing code.
 
 Today, we turn our attention to the "L" in SOLID: the **Liskov Substitution Principle (LSP)**. At its core, LSP is all about ensuring that our abstractions are correct and that inheritance hierarchies behave as expected. It's a crucial principle for building reliable object-oriented systems, as it dictates how subtypes should relate to their base types.
 
