@@ -16,7 +16,7 @@ And there's no better place to start than with one of the most fundamental creat
 
 Have you ever written a piece of code that needs to create an object, but the _exact type_ of object needed depends on user input, a configuration file, or some other runtime condition?  
 Your first instinct might be to use a large `if-else` or `switch` statement. While this works, it creates a maintenance nightmare. Every time you add a new object type, you have to modify that monolithic block of code, violating the
-[Open/Closed Principle](../../../../software-design/2025/06/03/SOLID-Design-Open-Closed-Principle.html).
+[Open/Closed Principle](../../../../software-design/2025/06/02/SOLID-Design-Open-Closed-Principle.html).
 
 The Factory Method pattern is the elegant solution to this exact problem. In this guide, we'll break down the problem, implement the pattern step-by-step in C++, and discuss when it's the perfect tool for the job.
 
@@ -259,8 +259,8 @@ We have successfully decoupled the business logic in `planDelivery` from the cre
 
 - **Pros:**
   - Avoids tight coupling between the creator and concrete products.
-  - [**Single Responsibility Principle**](../../../../software-design/2025/06/03/SOLID-Design-Single-Responsibility-Principle.html): You move the object creation code into one place, making it easier to maintain.
-  - [**Open/Closed Principle**](../../../../software-design/2025/06/03/SOLID-Design-Open-Closed-Principle.html): You can introduce new types of products without modifying existing client or creator code.
+  - [**Single Responsibility Principle**](../../../../software-design/2025/06/02/SOLID-Design-Single-Responsibility-Principle.html): You move the object creation code into one place, making it easier to maintain.
+  - [**Open/Closed Principle**](../../../../software-design/2025/06/02/SOLID-Design-Open-Closed-Principle.html): You can introduce new types of products without modifying existing client or creator code.
 - **Cons:**
   - The code can become more complex as you need to introduce a new hierarchy of creator classes.
 
