@@ -52,7 +52,7 @@ Creational patterns are all about _class instantiation_. They provide various me
 
 - [**Factory Method**](./Design-Patterns-Factory-Method.html): Our first deep dive! This is your go-to pattern when a class can't anticipate the type of objects it needs to create. You'll define an interface for creating an object but let subclasses decide which class to instantiate.
 
-- **Abstract Factory:** The factory of factories. We'll explore how to create *families* of related objects without specifying their concrete classes. Think of a UI toolkit that needs to create a set of widgets for either Windows or macOS.
+- [**Abstract Factory**](./Design-Patterns-Abstract-Factory.html): The factory of factories. We'll explore how to create *families* of related objects without specifying their concrete classes. Think of a UI toolkit that needs to create a set of widgets for either Windows or macOS.
 
 - **Builder:** Your solution for constructing complex objects step-by-step. The Builder pattern allows you to produce different types and representations of an object using the same construction code. Perfect for building a detailed user profile or a complex database query.
 

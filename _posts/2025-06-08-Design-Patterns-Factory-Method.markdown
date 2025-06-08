@@ -9,7 +9,7 @@ mathjax: true
 description: Factory Design pattern in C++ - A Practical Deep Dive
 ---
 
-### 📘 Learn how to create objects without specifying the exact class, making your code dramatically more flexible and open to extension.
+📘 **_Learn how to create objects without specifying the exact class, making your code dramatically more flexible and open to extension._**
 
 Welcome to the first deep-dive in our series on Software Design Patterns! If you're coming from our [series overview](./Design-Patterns.html), you know our goal is to move beyond theory and into practical application.  
 And there's no better place to start than with one of the most fundamental creational patterns: the **Factory Method**.
