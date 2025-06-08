@@ -8,7 +8,7 @@ mathjax: true
 # thumbnail: /assets/images/ocp_thumbnail.jpg # For smaller previews/cards
 description: Your complete 2025 guide to software design patterns in C++. Learn how to transition from junior developer to software architect with clear examples, real-world use cases, and expert insights.
 ---
-## 🧭 Start here. This is your roadmap to moving from a junior developer to a software architect, one pattern at a time.
+### 🧭 Start here. This is your roadmap to moving from a junior developer to a software architect, one pattern at a time.
 
 Ever felt stuck on a coding problem, with a nagging feeling that there must be a better, more elegant way to solve it? You're not alone. Every developer reaches a point where the challenge isn't just *making the code work*, but making it maintainable, scalable, and easy for others (or your future self) to understand.
 
@@ -20,7 +20,7 @@ Welcome to our definitive 2025 series on demystifying these powerful concepts. T
 
 ---
 
-## ❓ What Are Design Patterns, Really?
+### ❓ What Are Design Patterns, Really?
 
 At its heart, a design pattern is a **reusable, high-level blueprint for solving a recurring design problem.**
 
@@ -30,7 +30,7 @@ The formalization of these practices was a watershed moment for software enginee
 
 ---
 
-## 🚀 Why This Series Is a Game-Changer for Your Career
+### 🚀 Why This Series Is a Game-Changer for Your Career
 
 Learning these patterns isn't just an academic exercise. It provides concrete advantages:
 
@@ -46,11 +46,11 @@ Our series is structured around the three classical categories defined by the Ga
 
 ---
 
-### 🧱 Part 1: Creational Design Patterns
+#### 🧱 Part 1: Creational Design Patterns
 
 Creational patterns are all about _class instantiation_. They provide various mechanisms for creating objects, which increases flexibility and allows you to decouple your system from the specifics of how its objects are made.
 
-- **Factory Method:** Our first deep dive! This is your go-to pattern when a class can't anticipate the type of objects it needs to create. You'll define an interface for creating an object but let subclasses decide which class to instantiate.
+- [**Factory Method**](./Design-Patterns-Factory-Method.html): Our first deep dive! This is your go-to pattern when a class can't anticipate the type of objects it needs to create. You'll define an interface for creating an object but let subclasses decide which class to instantiate.
 
 - **Abstract Factory:** The factory of factories. We'll explore how to create *families* of related objects without specifying their concrete classes. Think of a UI toolkit that needs to create a set of widgets for either Windows or macOS.
 
@@ -62,7 +62,7 @@ Creational patterns are all about _class instantiation_. They provide various me
 
 ---
 
-### 🧩 Part 2: Structural Design Patterns
+#### 🧩 Part 2: Structural Design Patterns
 
 Structural patterns explain how to assemble objects and classes into larger structures, while keeping these structures flexible and efficient. They focus on simplifying the relationships between entities.
 
@@ -78,7 +78,7 @@ Structural patterns explain how to assemble objects and classes into larger stru
 
 ---
 
-### 🔁 Part 3: Behavioral Design Patterns
+#### 🔁 Part 3: Behavioral Design Patterns
 
 Behavioral patterns are all about effective communication, collaboration, and the assignment of responsibilities between objects.
 
@@ -94,7 +94,7 @@ Behavioral patterns are all about effective communication, collaboration, and th
 
 ---
 
-## 🌟 Your Journey Starts Now
+### 🌟 Your Journey Starts Now
 
 This roadmap is your guide. We'll tackle each of these patterns with clear explanations, practical C++ examples, and discussions on when (and when not) to use them.
 
