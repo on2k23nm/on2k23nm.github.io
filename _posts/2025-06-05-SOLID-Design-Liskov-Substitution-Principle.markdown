@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "🔗 Liskov Substitution Principle Explained | SOLID Design Principles"
+title: "Liskov Substitution Principle in C++ – Examples & Best Practices"
 date: 2025-06-05 00:29:01 +0530
 categories: software-design
 mathjax: true
@@ -8,6 +8,12 @@ mathjax: true
 # thumbnail: /assets/images/ocp_thumbnail.jpg # For smaller previews/cards
 description: Explore the Liskov Substitution Principle (LSP) in SOLID design Principles. Learn its importance for correct inheritance and behavioral subtyping with clear examples.
 ---
+
+# Mastering the Liskov Substitution Principle (LSP) in Modern C++
+
+> 🔗 **What you’ll learn:** Core LSP rules, red-flag subclass designs, and three C++ refactorings you can copy-paste.  
+
+<!--more-->
 
 ## 🌟 Introduction
 
@@ -29,7 +35,7 @@ _If you have a piece of code that works with a base class, it should also work c
 
 ---
 
-## 🧩 Illustrating LSP: The Classic Rectangle vs. Square Problem in C++
+## 🧩 Illustrating LSP: Classic Rectangle vs. Square Problem
 
 One of the most famous examples used to demonstrate LSP is the relationship between a rectangle and a square. Mathematically, a square *is a* rectangle. This might lead us to model it using public inheritance in C++, but let's see why this can cause behavioral problems.
 
@@ -131,7 +137,7 @@ main: client_code.h:9: void useRectangle(Rectangle&): Assertion `actualArea == e
 
 The assertion fails! The client code, which only knows it has a `Rectangle`, sets the `height` to 5. But in the `Square` subclass, this action has a side effect: it also changes the `width` to 5. The behavior of the `Square` object is not consistent with the behavior of the base `Rectangle` class from the client's perspective. The behavioral contract is broken. This is a clear violation of LSP.
 
-## 🎨 The Solution: Rethinking the Hierarchy
+### 🎨 The Solution: Rethinking the Hierarchy
 
 The issue here is that the "is-a" relationship from mathematics doesn't always translate to a behavioral "is-a" relationship suitable for public inheritance. The fix is to not force an inheritance model that doesn't fit the behavior.
 
@@ -239,7 +245,7 @@ int main() {
 
 This demonstrates the power of LSP. By ensuring our inheritance hierarchies model behavior correctly, we create systems that are both flexible (thanks to polymorphism with the `Shape` class) and safe (by preventing incorrect substitutions at compile time).
 
-## 🧐 Common Pitfalls and Considerations when Applying LSP
+## 🔍 LSP Red Flags & Quick Checks
 
 While the Rectangle/Square problem is a clear-cut example, LSP violations in real-world applications can be more subtle. Here are some common red flags and pitfalls to watch out for in your own code:
 
