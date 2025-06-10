@@ -3,19 +3,63 @@
 
 <head>
     <meta charset="utf-8">
-    <title>{{ page.title }} | {{ site.title }}</title>
+
+    {%- comment -%}
+    --------------------------------------------------------------------
+    1) TITLE – append the site name only if it isn't already present.
+    --------------------------------------------------------------------
+    {%- endcomment -%}
+    <title>
+        {{ page.title | escape }}
+        {%- unless page.title contains site.title -%}
+        | {{ site.title | escape }}
+        {%- endunless -%}
+    </title>
+
+    {%- comment -%}
+    --------------------------------------------------------------------
+    2) BASIC SEO META
+    --------------------------------------------------------------------
+    {%- endcomment -%}
     {% if page.description %}
     <meta name="description" content="{{ page.description | escape }}">
     {% endif %}
-    <!-- <meta name="viewport" content="width=device-width, initial-scale=1"> -->
-    <link rel="stylesheet" href="{{ '/assets/main.css' | relative_url }}">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    {%- comment -%}
+    --------------------------------------------------------------------
+    3) OPEN GRAPH / TWITTER CARDS
+    – fallback to a site-wide default image if a page banner isn't set
+    --------------------------------------------------------------------
+    {%- endcomment -%}
+    <meta property="og:title" content="{{ page.title | escape }}">
+    {% if page.description %}
+    <meta property="og:description" content="{{ page.description | escape }}">
+    {% endif %}
+    <meta property="og:type" content="article">
+    {%- if page.image -%}
+    <meta property="og:image" content="{{ page.image | relative_url }}">
+    {%- elsif site.default_image -%}
+    <meta property="og:image" content="{{ site.default_image | relative_url }}">
+    {%- endif -%}
+
+    <!-- Twitter uses the same Open Graph tags plus this card type -->
+    <meta name="twitter:card" content="summary_large_image">
+
+    <!-- Your stylesheet -->
+    <link rel="stylesheet" href="{{ '/assets/css/main.css' | relative_url }}">
+
     <!-- Google AdSense verification -->
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4252008174002764"
         crossorigin="anonymous"></script>
+
+    <!-- MathJax (if enabled) -->
     {% if page.mathjax %}
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     {% endif %}
 </head>
+
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-DTMB098MDX"></script>
 <script>
@@ -36,9 +80,34 @@
 
     <main class="page-content">
         <div class="wrapper">
+            {%- if page.collection == "posts" -%}
+            {%- if page.seo_h1 -%}
+            <!-- SEO-optimized H1, hidden from visual readers -->
+            <h1 class="visually-hidden">{{ page.seo_h1 }}</h1>
+            {%- else -%}
+            <!-- Fallback to title if seo_h1 not provided -->
+            <h1 class="visually-hidden">{{ page.title }}</h1>
+            {%- endif -%}
+            {%- else -%}
+            <!-- Normal H1 for other pages -->
+            <!-- <h1>{{ page.title }}</h1> -->
+            {%- endif -%}
+
             {{ content }}
         </div>
     </main>
 </body>
+<!-- Emoji divider -->
+<p style="text-align:center;font-size:2.0rem;margin:0.1rem 0 0.5rem;">
+    <!-- blue stars -->
+    <span style="color:#007acc;">&#9733;</span>
+    <span style="color:#007acc;">&#9733;</span>
+    <span style="color:#007acc;">&#9733;</span>
+</p>
+<!-- <hr> -->
+<!-- Centered subscribe box -->
+<div style="display:flex;justify-content:center;margin:2rem 0;">
+    {% include subscribe-inline.html %}
+</div>
 
 </html>

@@ -1,12 +1,11 @@
 ---
 layout: post
-title: 🔭 The Telescoping Constructor - An Anti-Pattern to Avoid
+title: Telescoping Constructor Anti-Pattern in C++ – Examples & Builder Fix
+seo_h1: Avoid C++ Telescoping Constructor Anti-Patterns with the Builder Pattern
 date: 2025-06-09 00:29:02 +0530
 categories: design-patterns
 mathjax: true
-# hero_image: /assets/images/ocp_hero.jpg # Or whatever your image path is
-# thumbnail: /assets/images/ocp_thumbnail.jpg # For smaller previews/cards
-description: The Telescoping Constructor - An Anti-Pattern to Avoid
+description: Avoid the Telescoping Constructor anti-pattern in C++. See real-world code examples, its 4 hidden risks, and how the Builder Pattern fixes them.
 ---
 
 In the world of software development, we often focus on learning powerful *design patterns*. But just as important is learning to recognize *anti-patterns*—common solutions that seem like a good idea at first but lead to significant problems down the road. Today, we're putting one of the most common anti-patterns under the microscope: the **Telescoping Constructor**.
@@ -123,9 +122,3 @@ The solution isn't to write more constructors. The solution is to separate the o
 ## 🏁 Conclusion
 
 The Telescoping Constructor is the classic example of a solution that works for simple cases but fails miserably as complexity grows. It creates code that is hard to read, easy to break, and impossible to scale. By learning to recognize this anti-pattern, you can proactively refactor your code towards more robust and maintainable solutions, making you a more effective developer.
-
----
-
-*Like the article? Let’s connect on [LinkedIn](https://www.linkedin.com/in/onkarnm/).* 
-
-⭐ ⭐ ⭐

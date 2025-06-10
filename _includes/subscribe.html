@@ -1,0 +1,41 @@
+<!-- /_includes/subscribe.html -->
+<section id="subscribe-box" style="background:#f5f9ff;
+        border:1px solid #d0e2ff;border-radius:8px;padding:1.5rem;margin-top:3rem">
+  <h2 style="margin-top:0">
+    👉 Subscribe to get the next <strong>SOLID</strong> article
+    <em>(Interface Segregation)!</em>
+  </h2>
+
+  <form id="subscribe-form"
+        action="https://formspree.io/f/your-form-id"  <!-- replace with your Formspree endpoint -->
+        method="POST">
+    <input type="email" name="email" required
+           placeholder="Enter your email"
+           style="padding:.6rem .8rem;width:100%;max-width:320px;border:1px solid #ccc;
+                  border-radius:4px;margin-right:.5rem" />
+
+    <button type="submit"
+            style="padding:.6rem 1.2rem;background:#007acc;color:#fff;
+                   border:none;border-radius:4px;cursor:pointer">
+      Notify Me 📬
+    </button>
+  </form>
+
+  <p style="font-size:.8rem;margin-top:.8rem;color:#666">
+    No spam—just practical design-pattern deep dives. Unsubscribe anytime.
+  </p>
+</section>
+
+<script>
+  /* --- Google Analytics event on sign-up (GA-4) --- */
+  document.getElementById('subscribe-form')
+    .addEventListener('submit', () => {
+      if (window.gtag) {
+        gtag('event', 'newsletter_signup', {
+          event_category: 'engagement',
+          event_label: 'SOLID_series',
+          value: 1
+        });
+      }
+    });
+</script>
