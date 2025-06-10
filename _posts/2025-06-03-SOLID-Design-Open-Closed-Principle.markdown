@@ -15,9 +15,9 @@ At its core, the **Open/Closed Principle** states that software entities (such a
 
 Each principle in this series is explored not just by definition, but through first-principles reasoning, real-world examples, and **C++-centric illustrations** that emphasize practical application.
 
-If you're new to SOLID principles or missed the first part, in **Part 1**, we explored the **Single Responsibility Principle** and saw how splitting responsibilities across well-defined units leads to more testable and maintainable systems.  
+If you're new to SOLID principles or missed the first blog, we explored the **Single Responsibility Principle** and saw how splitting responsibilities across well-defined units leads to more testable and maintainable systems.  
 
-👉 If you missed the first blog in this series that is The [Single Responsibility Principle](./SOLID-Design-Single-Responsibility-Principle.html)
+In case you missed the first blog in the series, it is here 👉 [Single Responsibility Principle](./SOLID-Design-Single-Responsibility-Principle.html)
 
 ---  
 
