@@ -59,7 +59,7 @@ The entire goal is to transform object creation from a messy, all-or-nothing fun
 
 ## 💥 The Problem it Solves
 
-In C++, creating an object with numerous optional attributes is often handled with **overloaded constructors** (the "telescoping constructor" anti-pattern) or a **series of setter methods**. Both have significant drawbacks.
+In C++, creating an object with numerous optional attributes is often handled with **overloaded constructors** (the [telescoping constructor anti-pattern](./Telescoping-Constructor-Anti-Pattern.html)) or a **series of setter methods**. Both have significant drawbacks.
 
 Consider a `HttpRequest` class:
 
@@ -380,7 +380,7 @@ int main() {
 
 ### 🧵 Conclusion
 
-In our **Design Patterns series** so far, we've explored the foundations of object creation. We started with the **Factory Method** to let subclasses decide which objects to create, then leveled up with the **Abstract Factory** to produce entire families of related objects.
+In our [**design patterns series**](../../06/07/Design-Patterns.html) so far, we've explored the foundations of object creation. We started with the [**Factory Method**](../../06/07/Design-Patterns-Factory-Method.html) to let subclasses decide which objects to create, then leveled up with the [**Abstract Factory**](../../06/07/Design-Patterns-Abstract-Factory.html) to produce entire families of related objects.
 
 With this post on the **Builder** pattern, we've now tackled the crucial challenge of constructing a single, complex object in a readable and flexible way. The Builder is an exceptional tool that trades a small amount of upfront boilerplate for tremendous long-term gains in API clarity, turning a mess of constructors into a powerful, fluent interface.
 
