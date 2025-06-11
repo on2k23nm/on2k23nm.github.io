@@ -3,12 +3,15 @@
   display: inline-flex;
   gap: .5rem;
   align-items: center;
-  flex-wrap: wrap;           /* ← lets items wrap on small widths */
-  justify-content: center;   /* keeps it centered */
+  flex-wrap: wrap;
+  /* ← lets items wrap on small widths */
+  justify-content: center;
+  /* keeps it centered */
 }
 
 .subscribe-inline input[type="email"] {
-  flex: 1 1 220px;           /* grows but never smaller than 220 px */
+  flex: 1 1 220px;
+  /* grows but never smaller than 220 px */
   min-width: 180px;
 }
 
@@ -17,8 +20,8 @@
   .subscribe-inline {
     flex-direction: column;
   }
+
   .subscribe-inline button {
     width: 100%;
   }
 }
-
