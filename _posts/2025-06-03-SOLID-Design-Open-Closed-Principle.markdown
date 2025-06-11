@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Open/Closed Principle (OCP) in C++ - A Practical Refactoring Guide"
-seo_h1: "Open/Closed SOLID Design Principle in C++ with Real-World Examples"
+seo_h1: Open/Closed Principle (OCP) in C++ – A SOLID Design Principle You Must Master
 date: 2025-06-03 00:29:02 +0530
 categories: software-design
 description: A deep dive into the Open/Closed Principle. Learn how to write stable, maintainable, and testable C++ code by making your software entities open for extension but closed for modification.
