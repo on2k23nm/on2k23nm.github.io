@@ -7,7 +7,7 @@ categories: software-design
 description: A deep dive into the Open/Closed Principle. Learn how to write stable, maintainable, and testable C++ code by making your software entities open for extension but closed for modification.
 ---
 
-### 🚀 **About This Blog Series**
+### 🚀 About This Blog Series
 
 In this second part of our deep-dive into the **SOLID design principles**—which include Single Responsibility, Open/Closed, Liskov Substitution, Interface Segregation, and Dependency Inversion—we focus specifically on the **Open/Closed Principle (OCP)**. These five foundational pillars of object-oriented design are crucial for building software systems that are robust, maintainable, scalable, and easier to evolve.
 
@@ -19,7 +19,6 @@ If you're new to SOLID principles or missed the first blog, we explored the **Si
 
 In case you missed the first blog in the series, it is here 👉 [Single Responsibility Principle](./SOLID-Design-Single-Responsibility-Principle.html)
 
----  
 
 ### ✨ What Does Open/Closed Mean?
 

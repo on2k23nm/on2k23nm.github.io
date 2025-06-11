@@ -99,16 +99,16 @@
         </div>
     </main>
 </body>
-<!-- Emoji divider -->
-<p style="text-align:center;font-size:2.0rem;margin:0.1rem 0 0.5rem;">
-    <!-- blue stars -->
-    <span style="color:#007acc;">&#9733;</span>
-    <span style="color:#007acc;">&#9733;</span>
-    <span style="color:#007acc;">&#9733;</span>
-</p>
+{% if page.collection == "posts" %}
+<div style="text-align:center; font-size:1.2rem; margin:2rem 0;">
+    <strong>❤️ Thanks for reading, you made it to the end!</strong><br>
+    <span style="font-size:0.95rem;">Stay sharp — more dev wisdom coming soon.</span>
+</div>
+{% endif %}
 <!-- <hr> -->
 <!-- Centered subscribe box -->
-<div style="display:flex;justify-content:center;margin:2rem 0;">
+<!-- <div style="display:flex;justify-content:center;margin:2rem 0;"> -->
+<div style="display:flex;justify-content:center;margin:0.25rem 0;">
     {% include subscribe-inline.html %}
 </div>
 

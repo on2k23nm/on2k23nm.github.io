@@ -7,6 +7,9 @@
   /* ← lets items wrap on small widths */
   justify-content: center;
   /* keeps it centered */
+
+  margin-top: 0.1rem;
+  /* or try 0.25rem if it's still too tall */
 }
 
 .subscribe-inline input[type="email"] {
