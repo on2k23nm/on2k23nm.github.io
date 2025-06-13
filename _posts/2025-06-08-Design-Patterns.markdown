@@ -1,9 +1,10 @@
 ---
-layout: post
+layout: default
 title: "Master Software Design Patterns in 2025 – Your Roadmap from Developer to Architect"
 seo_h1: "Design Patterns: Elements of Reusable Object-Oriented Software"
 date: 2025-06-08 00:00:01 +0530
 categories: design-patterns
+tags: [Software Architecture, SOLID Design Principles, C++, Design Patterns]
 mathjax: true
 description: Transition from junior developer to software architect with this complete 2025 guide to software design patterns in C++. Learn with clear examples, real-world use cases, and expert insights.
 ---

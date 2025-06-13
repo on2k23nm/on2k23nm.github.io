@@ -1,9 +1,10 @@
 ---
-layout: post
+layout: default
 title: Abstract Factory in C++ – Create Related Objects Without Tight Coupling
 seo_h1: Understand Abstract Factory Design Pattern in C++
 date: 2025-06-08 00:00:03 +0530
 categories: design-patterns
+tags: [Software Architecture, SOLID Design Principles, C++, Design Patterns]
 mathjax: true
 description: Learn the Abstract Factory design pattern in C++. Build families of related objects without depending on their concrete classes. Includes real-world examples and benefits for SOLID design.
 ---

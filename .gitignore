@@ -2,4 +2,9 @@ _site
 .sass-cache
 .jekyll-cache
 .jekyll-metadata
+Gemfile.lock
+*.Zone.Identifier
+.DS_Store
+Thumbs.db
+*.swp
 vendor

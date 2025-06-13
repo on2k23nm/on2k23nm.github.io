@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>{{ page.title | escape }}</title>
+    {% if page.description %}
+    <meta name="description" content="{{ page.description | escape }}">
+    {% endif %}
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta property="og:title" content="{{ page.title | escape }}">
+    {% if page.description %}
+    <meta property="og:description" content="{{ page.description | escape }}">
+    {% endif %}
+    <meta property="og:type" content="article">
+    {%- if page.image -%}
+    <meta property="og:image" content="{{ page.image | relative_url }}">
+    {%- elsif site.default_image -%}
+    <meta property="og:image" content="{{ site.default_image | relative_url }}">
+    {%- endif -%}
+
+    <!-- Twitter uses the same Open Graph tags plus this card type -->
+    <meta name="twitter:card" content="summary_large_image">
+
+    <!-- Your stylesheet -->
+    <link rel="stylesheet" href="{{ '/assets/css/main.css' | relative_url }}">
+    <link rel="stylesheet" href="{{ '/assets/css/subscription.css' | relative_url }}">
+
+    <!-- Google AdSense verification -->
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4252008174002764"
+        crossorigin="anonymous"></script>
+
+    <!-- MathJax (if enabled) -->
+    {% if page.mathjax %}
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    {% endif %}
+</head>
+
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-DTMB098MDX"></script>
+<script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag('js', new Date());
+
+    gtag('config', 'G-DTMB098MDX');
+</script>
+
+<body>
+    <header class="site-header">
+        <div class="wrapper">
+            <a class="site-title" href="{{ '/' | relative_url }}">{{ site.title }}</a>
+            {% include navigation.html %}
+        </div>
+
+    </header>
+
+    <!-- <header class="post-header">
+        <div class="post-title">
+            <h1 class="title">{{ page.title }}</h1>
+            {% if page.tags %}
+            <div class="tags">
+                <i class="fa-solid fa-tag" aria-hidden="true"></i>
+                {% for tag in page.tags %}
+                <span class="tag">{{ tag }}</span>
+                {% unless forloop.last %}
+                <span class="separator">•</span>
+                {% endunless %}
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="post-meta">
+            <div class="date">
+                <span class="posted-on">📅 {{ page.date | date: "%B %e, %Y" }}</span>
+                <span class="reading-time">⏱️ {{ content | number_of_words | divided_by:200 | ceil }}-minute read</span>
+            </div>
+
+            {% if page.tags %}
+            <div class="tags">
+                <i class="fa-solid fa-tag" aria-hidden="true"></i>
+                {% for tag in page.tags %}
+                <span class="tag">{{ tag }}</span>
+                {% unless forloop.last %}
+                <span class="separator">•</span>
+                {% endunless %}
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+    </header> -->
+
+    <main class="page-content">
+        <div class="wrapper">
+
+            <!-- Visually hidden H1 for SEO -->
+            <!-- <h1 class="visually-hidden">
+                {{ page.seo_h1 | default: page.title }}
+            </h1> -->
+
+            <!-- Actual visible title -->
+            <h1 class="post-title">{{ page.title }}</h1>
+
+            <!-- Meta info -->
+            <p class="post-meta">
+                📅 {{ page.date | date: "%B %e, %Y" }} &nbsp;
+                ⏱️ {{ content | number_of_words | divided_by:200 | ceil }}-minute read
+            </p>
+
+            <!-- Tag badges -->
+            {% if page.tags %}
+            <div class="post-tags">
+                {% for tag in page.tags %}
+                <span class="tag">{{ tag }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Post body -->
+            {{ content }}
+        </div>
+    </main>
+</body>
+{% if page.collection == "posts" %}
+<div style="text-align:center; font-size:1.2rem; margin:2rem 0;">
+    <strong>You made it to the end! Thanks for reading ❤️</strong><br>
+    <span style="font-size:0.95rem;">Stay sharp — more dev wisdom coming soon.</span>
+</div>
+{% endif %}
+<!-- <hr> -->
+<!-- Centered subscribe box -->
+<!-- <div style="display:flex;justify-content:center;margin:2rem 0;"> -->
+<div style="display:flex;justify-content:center;margin:0.25rem 0;">
+    {% include subscribe-inline.html %}
+</div>
+
+</html>

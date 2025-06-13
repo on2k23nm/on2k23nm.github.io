@@ -444,7 +444,7 @@ table td {
 .post-list {
   margin-left: 0;
   list-style: none;
-}
+} 
 
 .post-list>li {
   margin-bottom: 30px;
@@ -787,7 +787,7 @@ table td {
   border: 0;
 } */
 
-.visually-hidden {
+/* .visually-hidden {
   position: absolute !important;
   height: 1px !important;
   width: 1px !important;
@@ -798,5 +798,47 @@ table td {
   padding: 0 !important;
   margin: 0 !important;
 }
+
+.tag {
+  display: inline-block;
+  background-color: #e4e4e4;
+  border-radius: 6px;
+  padding: 4px 10px;
+  margin: 2px;
+  font-family: monospace;
+  font-size: 0.9em;
+} */
+
+/* .post-title {
+  font-size: 2.2rem;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+}
+
+.post-meta {
+  font-size: 0.95rem;
+  color: #555;
+  margin-bottom: 1rem;
+} */
+
+.post-tags {
+  margin-bottom: 2rem;
+}
+
+.post-tags .tag {
+  display: inline-block;
+  background-color: #e0e0e0;
+  font-family: monospace;
+  font-size: 0.85rem;
+  padding: 0.25em 0.6em;
+  margin: 0.25em 0.4em 0 0;
+  border-radius: 6px;
+}
+
+.visually-hidden {
+  position: absolute;
+  left: -9999px;
+}
+
 
 /*# sourceMappingURL=main.css.map */

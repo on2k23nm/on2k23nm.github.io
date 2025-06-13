@@ -1,9 +1,10 @@
 ---
-layout: post
+layout: default
 title: Factory Method in C++ - A Practical Deep Dive
 seo_h1: Learn the Factory Method Pattern in C++ – A Key Design Pattern
 date: 2025-06-08 00:00:02 +0530
 categories: design-patterns
+tags: [Software Architecture, SOLID Design Principles, C++, Design Patterns]
 mathjax: true
 # hero_image: /assets/images/ocp_hero.jpg # Or whatever your image path is
 # thumbnail: /assets/images/ocp_thumbnail.jpg # For smaller previews/cards
