@@ -789,4 +789,38 @@ table td {
   border-radius: 6px;
 }
 
+/* Pagination styles */
+.pagination {
+  text-align: center;
+  margin: 2rem 0;
+  font-size: 0.9rem;
+}
+
+.pagination a,
+.pagination span {
+  padding: 8px 12px;
+  margin: 0 2px;
+  border: 1px solid #ddd;
+  text-decoration: none;
+  color: #333;
+  border-radius: 4px;
+}
+
+.pagination .current {
+  background-color: #333;
+  color: #fff;
+  border-color: #333;
+  font-weight: bold;
+}
+
+.pagination .disabled {
+  color: #ccc;
+  border-color: #eee;
+  cursor: not-allowed;
+}
+
+.pagination a:hover {
+  background-color: #f5f5f5;
+}
+
 /*# sourceMappingURL=main.css.map */
