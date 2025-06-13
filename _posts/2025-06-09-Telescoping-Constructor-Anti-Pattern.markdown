@@ -9,7 +9,7 @@ mathjax: true
 description: Avoid the Telescoping Constructor anti-pattern in C++. See real-world code examples, its 4 hidden risks, and how the Builder Pattern fixes them.
 ---
 
-In the world of software development, we often focus on learning powerful *design patterns*. But just as important is learning to recognize *anti-patterns*—common solutions that seem like a good idea at first but lead to significant problems down the road. Today, we're putting one of the most common anti-patterns under the microscope: the **Telescoping Constructor**.
+In the world of software development, we often focus on learning powerful [*design patterns*](../../06/07/Design-Patterns.html). But just as important is learning to recognize *anti-patterns*—common solutions that seem like a good idea at first but lead to significant problems down the road. Today, we're putting one of the most common anti-patterns under the microscope: the **Telescoping Constructor**.
 
 It all starts innocently. You have an object. You need to create it. You write a constructor. Then, your object needs a few optional settings. So, you add another constructor. And then another. And another. Soon, you have a "telescope" of constructors, each one longer than the last, and you've unknowingly created a maintenance nightmare.
 
@@ -118,7 +118,7 @@ Here are the four key reasons why the code above will cause you and your team he
 
 When you see a telescoping constructor in your codebase, treat it as a "code smell". It's a sign that your object's creation logic is too complex for a simple constructor.
 
-The solution isn't to write more constructors. The solution is to separate the object's construction from its representation. This is precisely what the **Builder Pattern** is designed to do, which allows you to build a complex object in a series of readable, flexible, and scalable steps.
+The solution isn't to write more constructors. The solution is to separate the object's construction from its representation. This is precisely what the [**Builder Pattern**](./Design-Patterns-Builder-Pattern.html) is designed to do, which allows you to build a complex object in a series of readable, flexible, and scalable steps.
 
 ## 🏁 Conclusion
 
