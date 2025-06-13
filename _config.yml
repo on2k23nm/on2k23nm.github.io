@@ -22,7 +22,7 @@ title: Hack. Crash. Transcend.
 email: onnmprof@gmail.com
 description: "This blog is a collection of my notes and reflections in the pursuit of excellence across Deep Learning, Computer Vision, Mathematics, and Computer Systems."
 # baseurl: "https://on2k23nm.github.io" # the subpath of your site, e.g. /blog
-# url: "https://on2k23nm.github.io"
+url: "https://on2k23nm.github.io"
 twitter_username: tweet2Onkar
 github_username:  on2k23nm
 
