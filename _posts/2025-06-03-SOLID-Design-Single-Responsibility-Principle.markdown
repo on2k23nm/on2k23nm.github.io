@@ -4,7 +4,7 @@ title: "Single Responsibility Principle (SRP) in C++ – Examples & Design Benef
 seo_h1: Single Responsibility Principle (SRP) in C++ – A SOLID Design Principle You Must Master
 date: 2025-06-03 00:29:01 +0530
 categories: software-design
-tags: [Software Architecture, SOLID Design Principles, C++, Design Patterns]
+tags: [SOLID Design Principles]
 description: Understand the Single Responsibility Principle (SRP) in SOLID design Principles. Learn how focusing on one responsibility per class leads to more robust and maintainable code.
 ---
 

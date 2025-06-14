@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="{{ site.lang | default: " en" }}">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- SEO -->
+    <title>Posts tagged "{{ page.tag }}" | {{ site.title | escape }}</title>
+    <meta name="description" content="A collection of posts tagged with {{ page.tag }}">
+    <link rel="canonical" href="{{ page.url | absolute_url }}">
+
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="{{ '/assets/css/main.css' | relative_url }}">
+</head>
+
+<body>
+
+    <!-- Site Header -->
+    <header class="site-header">
+        <div class="wrapper">
+            <a class="site-title" href="{{ '/' | relative_url }}">{{ site.title }}</a>
+            {% include navigation.html %}
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="page-content" aria-label="Content">
+        <div class="wrapper">
+            <div class="home">
+
+                <h1 class="page-heading">Posts tagged "{{ page.tag }}"</h1>
+
+                <ul class="post-list">
+                    <!-- Loop through all posts on the site with this specific tag -->
+                    {% for post in site.tags[page.tag] %}
+                    <li>
+                        <span class="post-meta">{{ post.date | date: "%B %e, %Y" }}</span>
+                        <h3>
+                            <a class="post-link" href="{{ post.url | relative_url }}">
+                                {{ post.title | escape }}
+                            </a>
+                        </h3>
+                        {% if post.description %}
+                        <p class="post-excerpt"><i>{{ post.description | escape }}</i></p>
+                        {% endif %}
+                    </li>
+                    {% endfor %}
+                </ul>
+
+            </div>
+        </div>
+    </main>
+
+    <!-- Site Footer -->
+    <footer class="site-footer">
+        <div class="wrapper">
+            <div class="footer-col-wrapper">
+                <div class="footer-col">
+                    <p>&copy; {{ "now" | date: "%Y" }} {{ site.title }}. All rights reserved.</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+</body>
+
+</html>

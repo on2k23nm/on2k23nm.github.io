@@ -44,7 +44,7 @@
     <link rel="stylesheet" href="{{ '/assets/css/main.css' | relative_url }}">
     <link rel="stylesheet" href="{{ '/assets/css/subscription.css' | relative_url }}">
 
-        <!-- Your stylesheet -->
+    <!-- Your stylesheet -->
     <link rel="stylesheet" href="{{ '/assets/css/main.css' | relative_url }}">
     <link rel="stylesheet" href="{{ '/assets/css/subscription.css' | relative_url }}">
 
@@ -137,14 +137,21 @@
                     </p>
                 </header>
 
-                {% if page.tags %}
+                <!-- {% if page.tags %}
                 <div class="post-tags">
                     {% for tag in page.tags %}
                     <span class="tag">{{ tag }}</span>
                     {% endfor %}
                 </div>
+                {% endif %} -->
+                {% if page.tags %}
+                <div class="post-tags">
+                    {% for tag in page.tags %}
+                    {%- assign tag_slug = tag | slugify -%}
+                    <a class="tag" href="{{ '/tags/' | append: tag_slug | relative_url }}">{{ tag }}</a>
+                    {% endfor %}
+                </div>
                 {% endif %}
-
                 <div class="post-content" itemprop="articleBody">
                     {{ content }}
                 </div>

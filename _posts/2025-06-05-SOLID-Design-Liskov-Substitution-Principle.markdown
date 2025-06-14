@@ -4,7 +4,7 @@ title: "Liskov Substitution Principle (LSP) in C++ – Spot & Fix Hierarchy Brea
 seo_h1: Liskov Substitution Principle (LSP) in C++ – A SOLID Design Principle You Must Master
 date: 2025-06-05 00:29:01 +0530
 categories: software-design
-tags: [Software Architecture, SOLID Design Principles, C++, Design Patterns]
+tags: [SOLID Design Principles]
 mathjax: true
 description: Master SOLID’s Liskov Substitution Principle (LSP) in C++—see why it matters, spot hierarchy violations, and refactor with real-world examples.
 ---

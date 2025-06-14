@@ -4,7 +4,7 @@ title: The Singleton pattern - One Instance to Rule Them All
 seo_h1: A Deep Dive into the C++ Singleton Design Pattern
 date: 2025-06-09 00:29:01 +0530
 categories: design-patterns
-tags: [Software Architecture, SOLID, Clean Architecture, C++, Design Patterns]
+tags: [Design Patterns, cpp]
 mathjax: true
 description: Learn to implement a modern, thread-safe Singleton pattern in C++. This guide provides a complete code example for ensuring one instance of classes like loggers or configuration managers.
 ---

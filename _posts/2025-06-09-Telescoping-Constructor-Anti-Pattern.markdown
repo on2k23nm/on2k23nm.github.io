@@ -2,7 +2,7 @@
 layout: default
 title: Telescoping Constructor Anti-Pattern in C++ – Examples & Builder Fix
 seo_h1: Avoid C++ Telescoping Constructor Anti-Patterns with the Builder Pattern
-tags: [Software Architecture, SOLID, Clean Architecture, C++, Design Patterns]
+tags: [Software Architecture, Anti-Pattern, cpp, Design Patterns]
 date: 2025-06-09 00:29:02 +0530
 categories: design-patterns
 mathjax: true
