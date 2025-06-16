@@ -56,7 +56,7 @@ Creational patterns are all about _class instantiation_. They provide various me
 
 - [**Builder**](../../06/08/Design-Patterns-Builder-Pattern.html): Your solution for constructing complex objects step-by-step. The Builder pattern allows you to produce different types and representations of an object using the same construction code. Perfect for building a detailed user profile or a complex database query.
 
-- **Singleton:** One of the most famous (and sometimes controversial) patterns. We'll cover how to ensure a class has only one instance and provide a global point of access to it, discussing the right and wrong times to use it for things like loggers or hardware interface access.
+- [**Singleton:**](../../06/08/Design-Patterns-Singleton-Pattern.html) One of the most famous (and sometimes controversial) patterns. We'll cover how to ensure a class has only one instance and provide a global point of access to it, discussing the right and wrong times to use it for things like loggers or hardware interface access.
 
 - **Prototype:** This pattern lets you copy existing objects without making your code dependent on their classes. You'll learn how to create a new object by copying a "prototype" instance, which is perfect for when the cost of creating an object from scratch is high.
 
