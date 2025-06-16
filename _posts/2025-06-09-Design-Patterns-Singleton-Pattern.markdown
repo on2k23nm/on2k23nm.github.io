@@ -70,5 +70,59 @@ A true Singleton enforces its own uniqueness through a combination of three clev
 
 3. **A Public Static Access Method**: The class provides a public `static` method, conventionally named `getInstance()`, that acts as the sole entry point. When called, it checks if the instance has been created. If not, it creates it. If it has, it simply returns the existing instance.
 
+---
+
+### The Classic Implementation: Putting it Together
+
+Here is how those three principles look in a classic C++ implementation. This version directly translates the theory, but as we'll see, it has some serious flaws in a modern context.
+
+```cpp
+// This is the classic, but FLAWED implementation.
+#include <iostream>
+
+class RoyalTreasury {
+private:
+    // 2. A private static instance
+    static RoyalTreasury* instance_;
+    int gold_ = 1000; // The state of our singleton
+
+    // 1. A private constructor
+    RoyalTreasury() {
+        std::cout << "The Royal Treasury has been established." << std::endl;
+    }
+
+public:
+    // Deleted copy constructor and assignment operator to prevent duplicates
+    RoyalTreasury(const RoyalTreasury&) = delete;
+    RoyalTreasury& operator=(const RoyalTreasury&) = delete;
+
+    // 3. A public static access method
+    static RoyalTreasury* getInstance() {
+        // NOTE: This check is NOT thread-safe!
+        if (instance_ == nullptr) {
+            instance_ = new RoyalTreasury();
+        }
+        return instance_;
+    }
+    
+    // Example methods to interact with the singleton's state
+    void depositGold(int amount) { gold_ += amount; }
+    void withdrawGold(int amount) { gold_ -= amount; }
+    int getGoldBalance() const { return gold_; }
+};
+
+// Initialize the static instance to null
+RoyalTreasury* RoyalTreasury::instance_ = nullptr;
+
+int main() {
+    // Everyone uses the same instance
+    RoyalTreasury::getInstance()->depositGold(500);
+    std::cout << "Current treasury balance: " 
+              << RoyalTreasury::getInstance()->getGoldBalance() << std::endl; // Outputs 1500
+
+    // Who is responsible for this? This is a major flaw.
+    // delete RoyalTreasury::getInstance(); 
+}
+````
 
 
