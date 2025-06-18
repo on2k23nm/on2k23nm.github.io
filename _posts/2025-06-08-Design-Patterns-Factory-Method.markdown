@@ -9,6 +9,7 @@ mathjax: true
 # hero_image: /assets/images/ocp_hero.jpg # Or whatever your image path is
 # thumbnail: /assets/images/ocp_thumbnail.jpg # For smaller previews/cards
 description: Master the Factory Method design pattern in C++. Create objects without binding code to specific classes. Real-world refactoring examples inside.
+published: false
 ---
 
 📘 **_Learn how to create objects without specifying the exact class, making your code dramatically more flexible and open to extension._**
