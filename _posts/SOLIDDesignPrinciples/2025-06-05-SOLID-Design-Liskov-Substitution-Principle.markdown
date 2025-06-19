@@ -7,7 +7,7 @@ categories: software-design
 tags: [SOLID Design Principles]
 mathjax: true
 description: Master SOLID’s Liskov Substitution Principle (LSP) in C++—see why it matters, spot hierarchy violations, and refactor with real-world examples.
-published: false
+published: true
 ---
 
 ## 🌟 Introduction
