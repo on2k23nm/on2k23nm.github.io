@@ -4,7 +4,7 @@ title: "The Full Journey: A Deep Dive into Gaussian Elimination's Flop Count"
 seo_h1: "The Full Journey: A Deep Dive into Gaussian Elimination's Flop Count"
 date: 2025-06-28 00:29:02 +0530
 categories: [Mathematics, Numerical Analysis] # Changed categories to be more relevant
-tags: [Linear Algebra, Algorithms, Computational Cost, Numerical Analysis] # Added more relevant tags
+tags: [Linear Algebra, Maths] # Added more relevant tags
 mathjax: true
 description: Explore the computational cost of Gaussian Elimination. This deep dive explains the distinct flop counts of the cubic forward phase and the quadratic backward phase, highlighting their impact on solving large-scale linear systems in science, engineering, and AI.
 published: true
