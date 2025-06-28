@@ -6,7 +6,7 @@ date: 2025-06-03 00:29:02 +0530
 categories: software-design
 tags: [SOLID Design Principles]
 description: A deep dive into the Open/Closed Principle. Learn how to write stable, maintainable, and testable C++ code by making your software entities open for extension but closed for modification.
-published: true
+published: false
 ---
 
 ### 🚀 About This Blog Series

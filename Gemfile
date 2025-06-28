@@ -35,3 +35,5 @@ gem "http_parser.rb", "~> 0.6.0", :platforms => [:jruby]
 gem "jekyll-sitemap", "~> 1.4"
 
 gem 'jekyll-paginate'
+
+gem "jekyll-postfiles"
