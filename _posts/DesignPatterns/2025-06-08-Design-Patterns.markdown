@@ -7,7 +7,7 @@ categories: design-patterns
 tags: [Design Patterns, cpp]
 mathjax: true
 description: Transition from junior developer to software architect with this complete 2025 guide to software design patterns in C++. Learn with clear examples, real-world use cases, and expert insights.
-published: false
+published: true
 ---
 ### 🧭 Start here. This is your roadmap to moving from a junior developer to a software architect, one pattern at a time.
 

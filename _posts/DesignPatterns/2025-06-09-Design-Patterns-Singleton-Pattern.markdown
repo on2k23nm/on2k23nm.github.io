@@ -7,7 +7,7 @@ categories: design-patterns
 tags: [Design Patterns, cpp]
 mathjax: true
 description: Learn to implement a modern, thread-safe Singleton pattern in C++. This guide provides a complete code example for ensuring one instance of classes like loggers or configuration managers.
-published: false
+published: true
 ---
 
 Let's start at rock bottom. In programming, when you want an object, you ask for it:  

@@ -6,7 +6,7 @@ categories: software-design
 tags: [SOLID Design Principles]
 mathjax: true
 description: Master the C++ Dependency Inversion Principle. Our deep dive covers abstractions, dependency injection, and unit testing to help you write truly modular, decoupled software.
-published: false
+published: true
 ---
 ### 🎯 Mastering Dependency Inversion in C++: A Deep Dive into Building Truly Modular Software
 
