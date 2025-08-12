@@ -7,7 +7,7 @@ date: 2025-06-09 00:29:02 +0530
 categories: design-patterns
 mathjax: true
 description: Avoid the Telescoping Constructor anti-pattern in C++. See real-world code examples, its 4 hidden risks, and how the Builder Pattern fixes them.
-published: true
+published: false
 ---
 
 In the world of software development, we often focus on learning powerful [*design patterns*](../../06/07/Design-Patterns.html). But just as important is learning to recognize *anti-patterns*—common solutions that seem like a good idea at first but lead to significant problems down the road. Today, we're putting one of the most common anti-patterns under the microscope: the **Telescoping Constructor**.

@@ -7,7 +7,7 @@ categories: design-patterns
 tags: [Design Patterns, cpp]
 mathjax: true
 description: Learn the Abstract Factory design pattern in C++. Build families of related objects without depending on their concrete classes. Includes real-world examples and benefits for SOLID design.
-published: true
+published: false
 ---
 
 📘 **_Go beyond creating single objects and learn how to produce families of related items without coupling your code to concrete classes._**

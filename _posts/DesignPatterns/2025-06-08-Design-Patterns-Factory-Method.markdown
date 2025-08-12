@@ -5,7 +5,7 @@ seo_h1: Learn the Factory Method Pattern in C++ – A Key Design Pattern
 date: 2025-06-08 00:00:02 +0530
 categories: design-patterns
 tags: [Design Patterns, cpp]
-mathjax: true
+mathjax: false
 # hero_image: /assets/images/ocp_hero.jpg # Or whatever your image path is
 # thumbnail: /assets/images/ocp_thumbnail.jpg # For smaller previews/cards
 description: Master the Factory Method design pattern in C++. Create objects without binding code to specific classes. Real-world refactoring examples inside.

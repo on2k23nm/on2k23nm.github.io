@@ -7,7 +7,7 @@ categories: design-patterns
 tags: [Design Patterns, cpp]
 mathjax: true
 description: Master the Builder Design Pattern in C++ to construct complex objects step-by-step with clarity and flexibility. Ideal for evolving software architecture.
-published: true
+published: false
 ---
 
 📘 **_Learn how to construct complex objects step-by-step without messy constructors, making your code more readable, flexible, and scalable._**
