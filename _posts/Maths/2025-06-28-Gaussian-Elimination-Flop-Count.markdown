@@ -7,7 +7,7 @@ categories: [Mathematics, Numerical Analysis] # Changed categories to be more re
 tags: [Linear Algebra, Maths] # Added more relevant tags
 mathjax: true
 description: Explore the computational cost of Gaussian Elimination. This deep dive explains the distinct flop counts of the cubic forward phase and the quadratic backward phase, highlighting their impact on solving large-scale linear systems in science, engineering, and AI.
-published: true
+published: false 
 ---
 
 Gaussian elimination is the workhorse of linear algebra, a systematic method to solve systems of linear equations. When applied to an $$n \times (n+1)$$ augmented matrix (representing $$n$$ equations with $$n$$ variables), it proceeds in two distinct phases: 
