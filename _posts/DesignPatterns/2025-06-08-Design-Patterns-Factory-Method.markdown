@@ -6,8 +6,6 @@ date: 2025-06-08 00:00:02 +0530
 categories: design-patterns
 tags: [Design Patterns, cpp]
 mathjax: false
-# hero_image: /assets/images/ocp_hero.jpg # Or whatever your image path is
-# thumbnail: /assets/images/ocp_thumbnail.jpg # For smaller previews/cards
 description: "A collection of personal notes and practical examples—drawn from my work on an autonomous-vehicle software stack—showing how to apply the Factory Method pattern in modern C++. It serves as a reference for structure, use-cases, and trade-offs when decoupling object creation."
 published: true 
 ---
@@ -37,8 +35,6 @@ auto pointCloud = sensor->scan();
 
 This presents an immediate problem. What happens when you need to support a different sensor, like an OusterLiDAR, or switch to a simulated sensor for testing? You would have to find and modify every place where `new VelodyneLiDAR()` is called. This violates the **Open/Closed Principle**—_your system should be open for extension (adding new sensors) but closed for modification (changing the perception logic)_. Direct instantiation makes your high-level modules dependent on low-level concrete details, which is the opposite of a robust architecture.
 
-Of course. Here is a combined version that integrates the conceptual notes into the "Solution" and "First Principles" format.
-
 ### The Solution: Deferring Instantiation to Subclasses
 
 The **Factory Method** is a creational design pattern that provides a solution to the problem of creating objects without specifying the exact, concrete class of the object that will be created. Its primary principle is to **delegate the responsibility of instantiation**.
@@ -59,13 +55,13 @@ The pattern involves four key roles, which work together to achieve this decoupl
 
   * **Concrete Product**: A specific class that implements the Product Interface. This is the actual object that is created. In our example, this would be `VelodyneLIDAR`.
 
-  ![alt text](./Images/Factory/classISensor__inherit__graph.png)
+  ![alt text](/assets/images/DesignPatterns/Images/Factory/classISensor__inherit__graph.png)
 
   * **Creator**: An abstract class that declares the factory method. The factory method's return type is the Product Interface. This class may also contain core logic that operates on the abstract product. In our example, this is `SensorFactory`.
 
   * **Concrete Creator**: A specific class that overrides the factory method to return an instance of a specific Concrete Product. This class contains the knowledge of how to instantiate one particular product. In our example, this is `VelodyneFactory`.
 
-  ![alt text](./Images/Factory/classSensorFactory__inherit__graph.png)
+  ![alt text](/assets/images/DesignPatterns/Images/Factory/classSensorFactory__inherit__graph.png)
 
 ### The Abstraction Layer: The Public Contract
 
@@ -120,7 +116,7 @@ This layer contains the concrete classes that implement the abstract interfaces.
 
 **The Concrete Product**  
 
-![alt text](./Images/Factory/classVelodyneLiDAR__inherit__graph.png) 
+![alt text](/assets/images/DesignPatterns/Images/Factory/classVelodyneLiDAR__inherit__graph.png) 
 
 
 A **Concrete Product** is a specific implementation of the abstract **Product** interface. In this example, `VelodyneLIDAR` is a concrete product that implements the `ISensor` interface. It contains the actual implementation logic for the sensor's functionality, such as initializing hardware and reading data. Each concrete product corresponds to a specific object type that the system can create.
@@ -177,12 +173,9 @@ void VelodyneLiDAR::readData()
 
 The files `VelodyneFactory.hpp` and `VelodyneFactory.cpp` implement a **Concrete Factory** within the larger **Abstract Factory** design pattern. This concrete creator is responsible for instantiating a specific concrete product, in this case, a `VelodyneLiDAR` object. The implementation of `VelodyneFactory` demonstrates key principles of the Factory pattern:
 
-![alt text](./Images/Factory/classVelodyneFactory__inherit__graph.png)
+![alt text](/assets/images/DesignPatterns/Images/Factory/classVelodyneFactory__inherit__graph.png)
 
 **Abstraction and Decoupling** 
-
-
-
 
 The client code works with the abstract `SensorFactory` and `ISensor` interfaces, not the concrete `VelodyneFactory` or `VelodyneLiDAR` classes. 
 
@@ -206,10 +199,6 @@ public:
 
 #endif // VELODYNE_FACTORY_HPP
 ```
-
-
-
-
 
 The use of a **forward declaration** for `VelodyneLiDAR` in the `VelodyneFactory.hpp` header file is a crucial detail that ensures the client code remains decoupled from the implementation details of `VelodyneLiDAR`. This means that client code that includes `VelodyneFactory.hpp` does not need to know any specifics about how `VelodyneLiDAR` is implemented, which promotes a stable and flexible API.
 
@@ -333,7 +322,6 @@ Here’s how a client can stay blissfully unaware of which concrete sensor it’
 
 ### Practical Implications — Benefits and Engineering Trade-offs
 
-
 #### When to Reach for Factory Method — Quick Heuristics
 
 There are three quick rules of thumb, or heuristics, to help you decide when it's worth using the Factory Method design pattern. It's most valuable when your software needs to be flexible and adaptable to change.
@@ -358,7 +346,6 @@ There are three quick rules of thumb, or heuristics, to help you decide when it'
     This is the foundation of any plugin architecture. The **Factory Method** allows you to define an abstract factory interface, which acts as a "plugin contract."
 
     A third party can then create their own component and a corresponding factory inside a separate shared library (`.so`). Your main application can load this library at runtime, ask it for its factory, and then use that factory to create the new component, even though your app had no knowledge of it when it was compiled. This is exactly how applications like web browsers support extensions or video games support mods.
-
 
 ### Lateral Gains that are mostly overlooked    
 
