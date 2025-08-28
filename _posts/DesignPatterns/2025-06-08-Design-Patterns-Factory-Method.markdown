@@ -6,7 +6,7 @@ date: 2025-06-08 00:00:02 +0530
 categories: design-patterns
 tags: [Design Patterns, cpp]
 mathjax: false
-description: "A collection of personal notes and practical examples—drawn from my work on an full-stack autonomous-vehicle software—showing how to apply the Factory Method pattern in modern C++. It serves as a reference for structure, use-cases, and trade-offs when decoupling object creation."
+description: "A collection of my personal notes and practical examples—drawn from my work on an full-stack autonomous-vehicle software—showing how to apply the Factory Method pattern in modern C++. It serves as a reference for structure, use-cases, and trade-offs when decoupling object creation."
 published: true 
 ---
 
