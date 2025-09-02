@@ -2,7 +2,7 @@
 layout: default
 title: "A Practitioner's Notes on Software Design Patterns"
 seo_h1: "A Practitioner's Notes on Software Design Patterns"
-date: Tue Sep  2 20:30:29 IST 2025
+date: Tue Sep  2 20:48:42 IST 2025
 categories: design-patterns
 tags: [Design Patterns, cpp]
 mathjax: true
