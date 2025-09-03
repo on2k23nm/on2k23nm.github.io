@@ -2,13 +2,13 @@
 layout: default
 title: "A Practitioner's Notes on Software Design Patterns"
 seo_h1: "A Practitioner's Notes on Software Design Patterns"
-date: 2025-06-08 00:00:01 +0530
+date: Wed Sep  3 08:21:32 IST 2025
 categories: design-patterns
 tags: [Design Patterns, cpp]
 mathjax: true
 description: A collection of personal notes and practical examples for implementing core software design patterns in C++. Serves as a reference for their structure, common use cases, and trade-offs.
 published: True
-placement_prio: 5
+placement_prio: 0
 pinned: false
 ---
 ### Core Problem in Software Development
@@ -58,7 +58,7 @@ The formalization of these concepts originated with the 1994 book, *“Design Pa
 Creational patterns are concerned with the process of **object instantiation**. They provide mechanisms to create objects in a controlled way, which increases system flexibility and decouples the client from the specific classes being instantiated.
 
 * **Factory Method**: This pattern provides an interface for creating an object but defers the choice of which class to instantiate to its subclasses. It is used when a class cannot anticipate the exact type of objects it needs to create.
-* **Abstract Factory**: This pattern provides an interface for creating **families of related or dependent objects** without specifying their concrete classes. It is often used for providing platform-specific toolkits, such as a UI toolkit that needs to create a set of widgets for either Windows or macOS.
+* **[Abstract Factory](../../09/03/Design-Patterns-Abstract-Factory.html)**: This pattern provides an interface for creating **families of related or dependent objects** without specifying their concrete classes. It is often used for providing platform-specific toolkits, such as a UI toolkit that needs to create a set of widgets for either Windows or macOS.
 * **Builder**: This pattern separates the construction of a complex object from its representation, allowing the same construction process to create different variations of the object. It is ideal for objects that require multiple configuration steps, like a complex database query or a detailed user profile.
 * **Singleton**: This pattern ensures that a class has only one instance and provides a single, global point of access to it.
 * **Prototype**: This pattern allows for the creation of new objects by copying an existing object, known as a "prototype." This avoids a dependency on the concrete classes of the objects being created and is particularly efficient when the cost of creating an object from scratch is high.

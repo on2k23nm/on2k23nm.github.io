@@ -2,13 +2,13 @@
 layout: default
 title: "Abstract Factory Pattern: A Practitioner's Blueprint for Modular System Design"
 seo_h1: "Abstract Factory Pattern: A Practitioner's Blueprint for Modular System Design"
-date: 2025-06-08 00:00:03 +0530
+date: Wed Sep  3 08:21:51 IST 2025
 categories: design-patterns
 tags: [Design Patterns, cpp]
 mathjax: true
 description: "This post is a deep dive into the Abstract Factory pattern, exploring how it serves as a critical tool for improving the modularity and maintainability of autonomous vehicle software. Drawn from practical experience, these notes detail how the pattern can be used to architect systems that are robust and scalable, enabling the seamless management of entire hardware ecosystems."
 published: true
-placement_prio: 0
+placement_prio: 1
 pinned: false
 ---
 ### Introduction
