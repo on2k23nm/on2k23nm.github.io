@@ -8,6 +8,8 @@ tags: [Design Patterns, cpp]
 mathjax: true
 description: A collection of personal notes and practical examples for implementing core software design patterns in C++. Serves as a reference for their structure, common use cases, and trade-offs.
 published: True
+placement_prio: 5
+pinned: false
 ---
 ### Core Problem in Software Development
 
