@@ -2,7 +2,7 @@
 layout: default
 title: "Abstract Factory Pattern: A Practitioner's Blueprint for Modular System Design"
 seo_h1: "Abstract Factory Pattern: A Practitioner's Blueprint for Modular System Design"
-date: Wed Sep  3 08:21:51 IST 2025
+date: 2025-09-03 08:27:07 +0530
 categories: design-patterns
 tags: [Design Patterns, cpp]
 mathjax: true
