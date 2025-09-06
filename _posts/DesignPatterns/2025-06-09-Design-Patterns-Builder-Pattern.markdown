@@ -1,392 +1,334 @@
 ---
 layout: default
-title: Builder Design Pattern in C++ – Clean Object Construction Explained
-seo_h1: C++ Builder Design Pattern, A Key Design Pattern
-date: 2025-06-09 00:29:01 +0530
+title: "Builder Pattern: Practitioner’s Notes on Composable System Design"
+seo_h1: "Builder Pattern: Practitioner’s Notes on Composable System Design"
+date: 2025-09-03 08:27:07 +0530
 categories: design-patterns
 tags: [Design Patterns, cpp]
 mathjax: true
-description: Master the Builder Design Pattern in C++ to construct complex objects step-by-step with clarity and flexibility. Ideal for evolving software architecture.
-published: false
+description: "This post is a deep dive into the Abstract Factory pattern, exploring how it serves as a critical tool for improving the modularity and maintainability of autonomous vehicle software. Drawn from practical experience, these notes detail how the pattern can be used to architect systems that are robust and scalable, enabling the seamless management of entire hardware ecosystems."
+published: true
+placement_prio: 2
+pinned: false
 ---
 
-📘 **_Learn how to construct complex objects step-by-step without messy constructors, making your code more readable, flexible, and scalable._**
+###   Intro & problem (AV stacks are complex, constructors explode)
 
-Let’s start from the absolute beginning. In programming, we create “objects”—bundles of data and functionality. The most basic tool for creating an object is its **constructor**. You call the constructor, pass some arguments, and get a ready-to-use object. This works perfectly for simple things:  
-`new Color(red, green, blue)`.
+In the autonomous vehicle (AV) software, a primary problem is the immense complexity of the perception pipeline. This subsystem takes raw sensor data and fuses it to create a real-time, comprehensive understanding of the vehicle's surroundings.
 
-But what happens when an object isn’t simple? What if it represents something complex with dozens of attributes, many of which are optional? Imagine a `User` object. A `username` and `email` might be required, but `firstName`, `profilePicture`, `bio`, `city`, `preferredLanguage`, and `lastLoginDate` could all be optional.
+A single perception pipeline can have dozens of interdependent components, such as different types of cameras, LiDARs, radars, and various algorithms for object detection, tracking, and fusion. Attempting to configure and instantiate such a system using a simple constructor leads to a phenomenon known as **telescoping constructors**, where a single class has multiple constructors with an increasing number of parameters. This results in code that is difficult to read, maintain, and prone to errors. Developers might accidentally create **half-initialized objects** or **invalid combinations** of components, leading to unpredictable behavior or system crashes at runtime. For example, a tracking algorithm might require a specific data format that a particular sensor does not provide, but a simple constructor wouldn't be able to validate this dependency.
 
-If we stick with constructors, we end up in a nightmare. We might create one constructor with two arguments, another with three, another with four, and so on. This is called the “telescoping constructor” anti-pattern, and it's ugly, error-prone, and impossible to maintain.
+The **Builder pattern** solves these problems by separating the construction logic from the object itself. Instead of a single, monolithic constructor, the pattern provides a **staged, step-by-step assembly process**. This allows a developer to configure the perception pipeline piece by piece (e.g., first add the LiDAR, then the cameras, then the fusion algorithm). At each stage, the builder can perform validation, ensuring that components are compatible and that the final object is fully configured and in a valid state. This approach guarantees that you either get a complete, validated perception pipeline or the build process fails early with a clear diagnostic message, preventing runtime errors.
 
-> **Telescoping constructor anti-pattern** occurs when you create a cascade of constructors, each taking one more parameter than the last, to handle optional fields.
 
-The Builder pattern solves this by asking a simple question: What if we separate the *what* from the *how*? Instead of a one-shot, complex construction call, we use a helper—a **Builder**—to assemble the object piece by piece. You tell the builder, "I need a user with this username," then "add this profile picture," and then "set the city to this." When you're done providing instructions, you tell the builder, "Okay, build it." The builder then gives you the final, complete object.
+### Core Principles
 
-This simple shift in approach is the core of the Builder pattern. It’s a clean, readable, and scalable solution for constructing complex objects.
+The pattern operates on a simple but effective principle: **"Build in steps, validate in the middle, produce a ready object at the end."** This staged approach offers significant advantages over traditional constructors, especially when dealing with the intricate dependencies and numerous configuration options of an AV stack.
 
----
+* **Telescoping Constructors**: In complex systems, constructors can become unwieldy, with 10–20 parameters to account for all possible configurations. This makes them difficult to read, use, and maintain. The Builder pattern replaces this with a simple, readable interface.
+* **Half-Initialized Objects**: Without a controlled assembly process, it's easy to create an object that is only partially configured, leading to runtime errors. The Builder pattern prevents this by guaranteeing that the final object is returned only after all necessary steps are completed and validated.
+* **Invalid Combinations**: A key benefit of the Builder pattern is its ability to perform **validation during the build process**. For example, it can prevent a developer from combining a specific tracker algorithm with a sensor that provides incompatible data. This "fail-fast" approach catches errors at a safer, earlier stage.
+* **Environment Drift**: An AV stack needs different configurations for different environments—simulation, R&D, and production. The Builder pattern makes it simple to manage these variations by creating a separate **concrete builder** for each environment. The client code remains the same; only the builder changes.
 
-## 💻 The Analogy: Building a Custom PC
 
-Imagine you are ordering a custom-built computer. You wouldn’t use a single, massive form with every possible option listed in a fixed order. Instead, the process is interactive. You first choose a CPU, then your desired amount of RAM, then a graphics card, a storage solution, and so on.
+### Use Case: Building an Autonomous Perception Pipeline
 
-The PC building company’s website or sales assistant acts as your **Builder**. It guides you through the process, allowing you to specify only the parts you want. You can add a high-end graphics card but stick with a basic storage drive. Once you have made all your selections, you click the “Build PC” button. This final action triggers the creation of your `Computer` object (the **Product**).  
-The Builder pattern works in precisely the same way for constructing objects in code.
+A perfect example is the construction of a **perception pipeline**, a core subsystem of any AV stack. This pipeline takes raw sensor data and outputs a comprehensive understanding of the vehicle's surroundings. The complexity lies in its numerous, interdependent components, such as cameras, LiDAR, and various detection algorithms.
 
----
+Using the Builder pattern, a `PerceptionPipelineBuilder` would define a sequence of steps. Different **concrete builders** would then implement these steps to create distinct pipelines:
 
-## 🎯 Intent
+* **`UrbanPerceptionBuilder`**: This builder would configure a pipeline with a short-range, high-resolution LiDAR and a wide-angle camera, along with machine learning models optimized for detecting pedestrians, cyclists, and traffic lights. 
+* **`HighwayPerceptionBuilder`**: This builder would use a long-range LiDAR and a camera with a narrow field of view, specifically tuned to track vehicles at high speeds and detect lane markings over long distances. 
 
-Let's get down to the absolute core.  
+This approach makes the code for creating these pipelines clean and readable. The client code simply chooses the builder for the desired configuration and the builder handles the intricate assembly process, including all the necessary validation, ensuring the final pipeline is robust and ready for deployment.
 
-A standard **constructor** is a single, monolithic command:  
-_“Create this object for me NOW, with all these details, in this exact order.”_  
+### Builder vs. Other Creational Patterns
 
-The fundamental intent of the Builder pattern is to **destroy that monolithic command**.
+Choosing the right creational pattern is essential. Here's when to favor the Builder pattern over others:
 
-Instead of one rigid step, the Builder pattern introduces two distinct, flexible phases:
+| **Pattern**          | **Purpose**                                                                                                   | **When to Use**                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| -------------------- | ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Builder**          | Constructs a single, complex object step-by-step.                                                             | Use the Builder pattern when you need to build a complex object with **many optional parts** and want to ensure the final product is always valid. It’s the go-to pattern for objects that can be configured in numerous ways, preventing unwieldy constructors and enforcing a controlled assembly process.                                                                                                                                                                                                                                                  |
+| **Abstract Factory** | Creates families of related or dependent objects.                                                             | Use the Abstract Factory pattern when you need to create **families of related objects**, but not necessarily a single, complex object. For example, a `SensorFactory` could produce a specific type of LiDAR, camera, and radar that are all compatible. You’d use this if you need to create multiple consistent sets of objects. In contrast, use the Builder when you need to construct a **single, complex object step-by-step** and want to control the assembly process, allowing for different representations with the same core construction logic. _Abstract factory **supplies** a family of compatible parts (e.g., Ouster preproc, Zed camera, TensorRT detector). It’s the **supplier**. Builder is the **assembler** that wires those parts together correctly and validates order/constraints._ |
+| **Factory Method**   | Provides an interface for creating an object, but allows subclasses to decide which type of object to create. | The Factory Method pattern is used when a class **delegates instantiation** to its subclasses. It provides an interface for creating an object in a superclass, but allows subclasses to alter the type of object that will be created. Use the Builder when the object’s construction is **complex and involves many steps or optional parameters**. Factory Method is about **“what”** to create, while Builder is about **“how”** to create it.                                                                                                            |
+| **Prototype**        | Creates new objects by **cloning an existing object**.                                                        | The Prototype pattern is used to create new objects by cloning an existing object. This is useful when the object’s state is expensive to create from scratch or when you need to avoid coupling the client to a specific concrete class. Use the Builder when the object’s construction process is **complex and involves a sequence of operations**, rather than simply copying an existing instance. Prototype is for creating new instances based on a template, whereas Builder is for constructing instances from scratch through a guided process.     |
+| **Singleton**        | Ensures a class has **only one instance** and provides a **global access point** to it.                       | Use Singleton when exactly **one shared instance** must coordinate access to a process-wide resource (e.g., logging sink, monotonic clock, diagnostics registry) and you can guarantee lifecycle and thread-safety. Prefer **dependency injection** for testability; don’t use Singleton to model complex subsystems—use **Builder** to assemble those explicitly.                                                                                                                             
 
-1. **The Specification Phase**: You use a dedicated helper object—the **Builder**—to describe the final object you want, piece by piece.  
-   You are essentially creating a detailed blueprint or an order form.  
-   (`.withCPU("AMD Ryzen 9")`, `.withRAM("64GB")`, `.withGPU("RTX 4090")`).
 
-2. **The Creation Phase**: Once your specification is complete, you give a single, simple command to the Builder:  
-   **"Execute the blueprint."** (`.build()`).
+**When Builder is the right tool**   
+Use it when creation has many optional parts, order matters, and invariants span modules (e.g., “extrinsics after sensors, before fusion,” “EKF requires LiDAR”). You want fail-fast validation and a ready-to-run, immutable pipeline at the end. _Factories still exist—feeding parts to the Builder—but the **Builder owns the assembly and validation**._
 
-The entire goal is to transform object creation from a messy, all-or-nothing function call into a clean, readable, and manageable assembly process.  
-**This decoupling of specification from creation** is the powerful first principle behind the Builder pattern.
 
----
 
-## 💥 The Problem it Solves
+# Intent & mental model (Builder/Director/Factory)
 
-In C++, creating an object with numerous optional attributes is often handled with **overloaded constructors** (the [telescoping constructor anti-pattern](./Telescoping-Constructor-Anti-Pattern.html)) or a **series of setter methods**. Both have significant drawbacks.
+* **Builder = enforces correctness (no half-built object escapes; order constraints validated)**    
+Separates *how to construct* a complex object from the object itself. It exposes named steps (e.g., `with_detector`, `with_tracker`) and accumulates configuration until a final `build()` produces a ready-to-run pipeline.
+* **Director = the recipe (order + defaults per environment)**    
+Is a **recipe**. It calls the Builder in a known sequence to create a standard variant (Simulation, R&D, Production).
+* **Product (Abstract Factory) = immutable once built**   
+Remains the **supplier** of concrete module implementations (e.g., Velodyne vs Ouster pre-proc, TensorRT vs ONNX detector). The Builder consumes these parts and ensures the resulting system is coherent.
 
-Consider a `HttpRequest` class:
 
-```cpp
-// Anti-Pattern: Telescoping Constructors
-class HttpRequest {
-public:
-    HttpRequest(std::string method, std::string url);
-    HttpRequest(std::string method, std::string url, std::string body);
-    HttpRequest(std::string method, std::string url, std::string body, std::map<std::string, std::string> headers);
-    // This gets unmanageable. What if I want headers but no body?
-};
-````
+# Running example (PerceptionSuite)
 
-This is inflexible and error-prone. It's easy to mix up string parameters, and you can't easily skip optional parameters in the middle.
+* **Client: Trigger `build()`, Handle Diagnostics**    
 
-Using setters is another option, but it means the **object is mutable and can exist in an incomplete or invalid state during its construction**. You cannot easily enforce invariants (e.g., a `POST` request must have a `body`).
 
-```cpp
-#include <string>
-#include <map>
-#include <iostream>
-#include <stdexcept>
+    Start at the composition root. In this code, the composition root is the small function `build_pipeline(env, errors)`. It owns all wiring: it **creates a concrete builder** (e.g., `PipelineBuilder`) and treats it as an **`IBuilder&`**, hands that interface to a `PipelineDirector`, selects the variant from a strongly typed `Environment` enum (`Simulation`, `R&D`, `Production`), and then runs the **green gate**—the validation barrier—with `builder.build(&errors)`. If validation does not pass, nothing leaks out—only a clean list of diagnostics. `main()` remains a thin launcher that parses the environment, calls this root, and either prints the errors or runs the pipeline. Keeping policy (what to assemble) out of runtime code (how it runs) makes binaries easier to reason about and test.
 
-class HttpRequest {
-private:
-    std::string m_method;
-    std::string m_url;
-    std::string m_body;
-    std::map<std::string, std::string> m_headers;
+    When an **Abstract Factory** is in play, the composition root also **selects the concrete factory** (Sim/R&D/Prod vendor set) and **injects it into the concrete builder’s constructor** before passing the builder as `IBuilder&` to the Director. The Director stays interface-only (no allocation, no `build()` call), while the Builder assembles and validates.
 
-public:
-    // Default constructor creates an empty, incomplete object
-    HttpRequest() {}
+    > **Composition root** is the single entry point where an application’s object graph is assembled and validated before use. It is the only place that knows policies (which variant to build), selects concrete implementations and factories, injects them behind interfaces (here, **`IBuilder`**), invokes the Director recipe, runs the Builder’s validation gate, and finally produces the immutable Product. No domain/business logic lives here—only wiring, configuration, and failure handling. Keeping construction in one root makes dependencies explicit, enables fast failure with consolidated diagnostics, and simplifies testing (build paths can be unit-tested without running the system).
 
-    // Public setters allow mutating the object at any time
-    void setMethod(const std::string& method) {
-        m_method = method;
+
+    ```cpp
+    // --- Environment ------------------------------------------------------
+    enum class Environment { Simulation, RnD, Production };
+
+    static Environment parse_env(std::string_view s) {
+        std::string t{s};
+        std::transform(t.begin(), t.end(), t.begin(),
+                    [](unsigned char c){ return std::tolower(c); });
+        if (t == "sim"  || t == "simulation")  return Environment::Simulation;
+        if (t == "prod" || t == "production")  return Environment::Production;
+        return Environment::RnD; // default
     }
 
-    void setUrl(const std::string& url) {
-        m_url = url;
-    }
+    // --- Composition root -------------------------------------------------
+    std::optional<PerceptionPipeline>
+    build_pipeline(Environment env, std::vector<std::string>& errors) {
+        PipelineBuilder  concrete;     // choose the concrete builder here
+        PipelineDirector director{concrete}; // director depends on interface
 
-    void setBody(const std::string& body) {
-        m_body = body;
-    }
-
-    void addHeader(const std::string& key, const std::string& value) {
-        m_headers[key] = value;
-    }
-
-    // The validation logic is forced into a separate method, like send()
-    void send() const {
-        std::cout << "Attempting to send request..." << std::endl;
-
-        // --- Invariant Check ---
-        // We are forced to check the object's state here, at the last minute.
-        if (m_url.empty() || m_method.empty()) {
-            throw std::logic_error("Request is invalid: URL and method are required.");
+        switch (env) {
+            case Environment::Simulation: director.setupSimulation(); break;
+            case Environment::RnD:        director.setupRnD();        break;
+            case Environment::Production: director.setupProduction(); break;
         }
+        return concrete.build(&errors);   // green gate (all-or-nothing)
+    }
 
-        // This is the invariant from your screenshot.
-        if (m_method == "POST" && m_body.empty()) {
-            throw std::logic_error("Request is invalid: POST requests must have a body.");
+    // --- Launcher ------------------------------------------------------
+    int main(int argc, char** argv) {
+        Environment env = (argc > 1) ? parse_env(argv[1]) : Environment::RnD;
+
+        std::vector<std::string> errors;
+        auto pipeline = build_pipeline(env, errors);
+
+        if (!pipeline) {
+            std::cout << "Build failed (" << errors.size() << " issue(s)):\n";
+            for (const auto& e : errors) std::cout << "  - " << e << "\n";
+            return 1;
         }
-
-        std::cout << "Request sent successfully to " << m_url << std::endl;
+        pipeline->run();
+        return 0;
     }
-};
-````
+    ```
 
-**The "Nightmare": How This Fails in Practice**
 
-Now, let's see how a developer using this class can easily run into trouble.
+* **Director: Recipe, Not Factory**
 
-```cpp
-int main() {
-    // --- 1. Object in an INCOMPLETE state ---
-    HttpRequest request1;
-    // At this point, `request1` exists in memory, but it's completely
-    // useless. It has no URL or method. It's incomplete.
+    The Director captures the **build recipe** for each environment and talks only to the **`IBuilder` interface**. It drives the builder through a deliberate sequence—**sensors → extrinsics → fusion**—and then stops. **Order lives here.** The Director does not allocate, does not own modules, and never calls `build()`; it simply applies environment defaults (Simulation/R&D/Production) in a repeatable way. Depending on `IBuilder` (not a concrete Builder) keeps the recipe portable and testable: any conforming builder can be swapped in—one that sources parts via an Abstract Factory, a lightweight demo builder, or a test double.
 
-    request1.setUrl("https://api.example.com/data");
-    // It's still incomplete. What happens if we forget to set the method?
+    This interface-first design encodes **policy as steps**: *same construction API, different ordered sequences and defaults per environment*. It also enforces the inversion of dependencies: the recipe depends on an abstraction, while the **composition root** chooses the concrete builder and decides when to cross the **green gate** (`build(&errors)`).
 
-    try {
-        request1.send(); // This will throw the first exception.
-    } catch (const std::exception& e) {
-        std::cerr << "Error with request1: " << e.what() << std::endl;
-    }
+    ```cpp
+    // --- Domain choices ---------------------------------------------------
+    enum class LiDAR  { None, Sim, Ouster64, Velodyne64 };
+    enum class Camera { None, SimStereo, ZedStereo, ZedX };
+    enum class Fusion { None, EKF, StereoFusion };
 
-    // --- 2. Object in an INVALID state (The Invariant Problem) ---
-    HttpRequest request2;
-    request2.setUrl("https://api.example.com/users");
-    request2.setMethod("POST"); // We've declared our intent to send data.
-
-    // Developer gets distracted and forgets to set the body...
-    
-    // At this exact moment, `request2` is in an invalid state. It's a POST
-    // request with no body, which violates our application's rules.
-    // The class design allowed this invalid state to exist.
-
-    try {
-        // The error is only caught much later, when send() is called.
-        request2.send();
-    } catch (const std::exception& e) {
-        std::cerr << "Error with request2: " << e.what() << std::endl;
-    }
-
-    // --- 3. Mutability Problem ---
-    HttpRequest request3;
-    request3.setUrl("https://api.example.com/resource");
-    request3.setMethod("GET");
-    // ... we send the request, it works ...
-    std::cout << "Creating a valid GET request..." << std::endl;
-    request3.send();
-
-    // Much later in the code, someone can unknowingly change it.
-    request3.setBody("{ \"data\": \"some_new_data\" }");
-    // The object that was once a valid GET request is now something else.
-    // This mutability can lead to unpredictable behavior in complex systems.
-}
-````
-As the example shows:
-
-1. **No Atomic Creation:** The object is not created in a single, atomic step. It's built piece by piece, and between each `set...` call, it can be incomplete.
-2. **Delayed Validation:** The rules (invariants) for a valid object are not enforced at construction time. They are checked much later in a different method (`send()`), making it easy for invalid objects to exist and cause runtime errors.
-3. **No Immutability:** Once an object is created, its state can be changed at any time, which can be a source of bugs.
-
-This is precisely the scenario the **Builder pattern** solves. With a builder, all the specifications are gathered first. The `build()` method then acts as a gatekeeper, performing all validation at once *before* the object is even created. If the validation passes, a complete, valid, and immutable object is returned.
-
----
-
-### ✨ The Solution: The Builder Pattern
-
-The Builder pattern extracts the construction logic into a separate `Builder` class. This builder class often mirrors the fields of the object it creates and provides a "fluent" interface where method calls can be chained together. Each method sets a specific attribute and returns a reference to the builder itself (`*this`). A final `build()` method is called to create the actual product object.
-
-This makes the client code extremely readable and allows for the creation of immutable objects, as the product itself can have all its members `const` and only be settable via its private constructor which takes the builder as an argument.
-
----
-
-#### 🌿 Structure and Participants
-
-1. **Product**: The complex object being built (e.g., `Computer`). It typically has a private constructor that accepts a builder object.
-
-2. **Builder**: An interface or, more commonly in C++, an abstract base class or a concrete nested class. It defines the building steps (e.g., `setCPU()`, `setRAM()`) and provides the `build()` method. A very common C++ idiom is to make the Builder a public nested class of the Product.
-
-3. **ConcreteBuilder**: Implements the building steps. In the nested class idiom, the `Builder` class is itself the `ConcreteBuilder`.
-
-4. **Director (Optional)**: A class that encapsulates common ways to build a product. It takes a builder object and executes a series of steps on it. For example, a `ComputerDirector` could have methods like `buildGamingPC()` or `buildOfficePC()`.
-
----
-
-#### 🧾 C++ Code Example
-
-Here is a full C++11 implementation of our `Computer` analogy.
-
-##### **1. The Product (`Computer`)**
-
-The `Computer` class has its members `const` to ensure immutability after creation. Note the private constructor and the public nested `Builder` class.
-
-```cpp
-// Computer.h
-#pragma once
-#include <string>
-#include <iostream>
-#include <memory>
-
-class Computer {
-public:
-    // Forward declare the nested Builder class
-    class Builder;
-
-private:
-    // Product attributes are const for immutability
-    const std::string m_cpu;
-    const std::string m_ram;
-    const std::string m_storage;
-    const std::string m_gpu;
-
-    // Private constructor that takes a Builder
-    Computer(const Builder& builder);
-
-public:
-    void printSpecs() const {
-        std::cout << "PC Specs:" << std::endl;
-        std::cout << "  CPU: " << m_cpu << std::endl;
-        std::cout << "  RAM: " << m_ram << std::endl;
-        std::cout << "  Storage: " << m_storage << std::endl;
-        std::cout << "  GPU: " << m_gpu << std::endl;
-    }
-
-// --- The Nested Builder Class ---
-public:
-    class Builder {
+    // --- Director (Variant B): orchestrates sequence, never builds --------
+    class PipelineDirector {
     public:
-        // Required parameters are passed to the builder's constructor
-        Builder(std::string cpu, std::string ram)
-            : m_cpu(cpu), m_ram(ram) {}
+        explicit PipelineDirector(IBuilder& b) : b_(b) {}
 
-        // Setter-like methods that return the builder for chaining
-        Builder& setStorage(std::string storage) {
-            m_storage = storage;
-            return *this;
+        void setupSimulation() {
+            b_.reset();
+            b_.withLiDAR(LiDAR::Sim)
+            .withCamera(Camera::SimStereo)
+            .withExtrinsicsCalibrated()
+            .withFusion(Fusion::StereoFusion);
         }
-
-        Builder& setGPU(std::string gpu) {
-            m_gpu = gpu;
-            return *this;
+        void setupRnD() {
+            b_.reset();
+            b_.withLiDAR(LiDAR::Ouster64)
+            .withCamera(Camera::ZedStereo)
+            .withExtrinsicsCalibrated()
+            .withFusion(Fusion::StereoFusion);
         }
-
-        // The final build method that creates the Product
-        std::unique_ptr<Computer> build() {
-            return std::unique_ptr<Computer>(new Computer(*this));
+        void setupProduction() {
+            b_.reset();
+            b_.withLiDAR(LiDAR::Ouster64)
+            .withCamera(Camera::ZedStereo)
+            .withExtrinsicsCalibrated()
+            .withFusion(Fusion::EKF);
         }
 
     private:
-        friend class Computer; // Allow Computer to access private members
-        // Builder holds the same fields as the product
-        std::string m_cpu;
-        std::string m_ram;
-        std::string m_storage = "256GB SSD"; // Default value
-        std::string m_gpu = "Integrated Graphics"; // Default value
+        IBuilder& b_;
     };
-};
+    ```   
 
-// The Computer's constructor implementation must be after the Builder is fully defined.
-inline Computer::Computer(const Builder& builder)
-    : m_cpu(builder.m_cpu),
-      m_ram(builder.m_ram),
-      m_storage(builder.m_storage),
-      m_gpu(builder.m_gpu) {}
-````
+    In practice, Directors sit in bringup/wiring code (often invoked from a launch file), not inside node logic. Parameters select which Director to run; an **Abstract Factory** supplies vendor-specific parts; the Director orders the steps; the Builder validates; the composition root calls `build()` and fails fast if the gate is red. Typical patterns: Simulation uses replay/mock time and stereo fusion; R&D enables experimental fusion and verbose metrics; Production locks to validated modules (e.g., EKF) with strict clocks and conservative defaults.
 
-##### **2. The Optional Director**
+    > Director’s core responsibility is to **orchestrate the sequence of construction steps**—a repeatable **recipe**—so the Builder assembles a complex object in the right order with sane defaults.
 
-The `Director` encapsulates common build processes.
+* **Builder: The Green Gate — Assemble, Validate, Commit**
 
-```cpp
-// ComputerDirector.h
-#pragma once
-#include "Computer.h"
+    The `IBuilder` + Builder pair is the assembler and gatekeeper: `IBuilder` defines the fluent steps and the green-gate API; `PipelineBuilder` (the concrete implementation) enforces them. It gathers steps (`withLiDAR`, `withCamera`, `withExtrinsicsCalibrated`, `withFusion`) and then runs a single validation barrier before creation. Validation implements  **structural rules** (at least one sensor), **ordering rules** (extrinsics after sensors, before fusion), and **semantic rules** (EKF requires LiDAR; StereoFusion requires a stereo camera). `build(&errors)` is all-or-nothing—no half-built objects escape; diagnostics are consolidated. On success, the result is an immutable `PerceptionPipeline` (no setters), keeping runtime deterministic. `reset()` lets a Director reuse the Builder between recipes without leaking prior state.
 
-class ComputerDirector {
-public:
-    void buildGamingPC(Computer::Builder& builder) {
-        builder.setStorage("1TB NVMe SSD").setGPU("NVIDIA RTX 4080");
-    }
+    Directors and tests depend on `IBuilder`, so alternative builders can be swapped without changing recipes—for example, a factory-backed builder, a staged/compile-time builder, or a test double.
 
-    void buildOfficePC(Computer::Builder& builder) {
-        builder.setStorage("512GB SATA SSD").setGPU("Intel Iris Xe");
-    }
-};
-````
+    ```cpp
+    // --- IBuilder: interface for step-wise construction -------------------
+    struct IBuilder {
+        virtual ~IBuilder() = default;
 
-##### **3. Main Application (Client)**
+        virtual IBuilder& withLiDAR(LiDAR x) = 0;
+        virtual IBuilder& withCamera(Camera x) = 0;
+        virtual IBuilder& withExtrinsicsCalibrated() = 0;
+        virtual IBuilder& withFusion(Fusion x) = 0;
 
-This is where we use the Builder and Director to create computers.
+        virtual bool validate(std::vector<std::string>& errors) const = 0;
 
-```cpp
-// main.cpp
-#include "Computer.h"
-#include "ComputerDirector.h"
+        virtual std::optional<PerceptionPipeline>
+        build(std::vector<std::string>* out_errors = nullptr) const = 0;
 
-int main() {
-    // --- Using the Builder directly for a custom configuration ---
-    std::cout << "--- Building a custom High-End PC ---" << std::endl;
-    Computer::Builder customBuilder("AMD Ryzen 9", "64GB DDR5");
-    auto customPC = customBuilder.setStorage("4TB NVMe SSD").setGPU("NVIDIA RTX 4090").build();
-    customPC->printSpecs();
+        virtual void reset() = 0;
+    };
 
-    // --- Using the Director for a standard gaming PC ---
-    std::cout << "\n--- Building a standard Gaming PC using a Director ---" << std::endl;
-    Computer::Builder gamingBuilder("Intel Core i7", "32GB DDR5");
-    ComputerDirector director;
-    director.buildGamingPC(gamingBuilder);
-    auto gamingPC = gamingBuilder.build();
-    gamingPC->printSpecs();
+    // --- ConcreteBuilder: implements IBuilder + validation gate -----------
+    class PipelineBuilder final : public IBuilder {
+    public:
+        IBuilder& withLiDAR(LiDAR x) override {
+            lidar_ = x; sensors_set_ = true; return *this;
+        }
+        IBuilder& withCamera(Camera x) override {
+            camera_ = x; sensors_set_ = true; return *this;
+        }
+        IBuilder& withExtrinsicsCalibrated() override {
+            extrinsics_ok_ = sensors_set_; return *this;
+        }
+        IBuilder& withFusion(Fusion x) override {
+            fusion_ = x; return *this;
+        }
 
-    // --- Using the Builder for a basic PC with default values ---
-    std::cout << "\n--- Building a basic PC ---" << std::endl;
-    Computer::Builder basicBuilder("Intel Core i3", "8GB DDR4");
-    auto basicPC = basicBuilder.build();
-    basicPC->printSpecs();
+        bool validate(std::vector<std::string>& errors) const override {
+            errors.clear();
+            if (!sensors_set_)
+                errors.push_back("At least one sensor (LiDAR/Camera) is required.");
+            if (!fusion_.has_value() || *fusion_ == Fusion::None)
+                errors.push_back("Fusion must be selected (EKF or StereoFusion).");
+            if (!extrinsics_ok_)
+                errors.push_back("Extrinsics must be calibrated after sensors and before fusion.");
+            if (fusion_ == Fusion::EKF && (!lidar_.has_value() || *lidar_ == LiDAR::None))
+                errors.push_back("EKF requires a LiDAR source.");
+            if (fusion_ == Fusion::StereoFusion && (!camera_.has_value() || *camera_ == Camera::None))
+                errors.push_back("StereoFusion requires a stereo camera.");
+            return errors.empty();
+        }
 
-    return 0;
-}
-````
+        std::optional<PerceptionPipeline>
+        build(std::vector<std::string>* out_errors = nullptr) const override {
+            std::vector<std::string> errs;
+            if (!validate(errs)) {
+                if (out_errors) *out_errors = std::move(errs);
+                return std::nullopt;
+            }
+            PerceptionPipeline p;
+            p.lidar         = lidar_.value_or(LiDAR::None);
+            p.camera        = camera_.value_or(Camera::None);
+            p.fusion        = *fusion_;
+            p.extrinsics_ok = extrinsics_ok_;
+            return p; // immutable product
+        }
 
----
+        void reset() override {
+            lidar_.reset(); camera_.reset(); fusion_.reset();
+            sensors_set_ = false; extrinsics_ok_ = false;
+        }
 
-### 🧑‍🏫 When to Use the Builder Pattern
+    private:
+        std::optional<LiDAR>  lidar_;
+        std::optional<Camera> camera_;
+        std::optional<Fusion> fusion_;
+        bool sensors_set_  = false;
+        bool extrinsics_ok_ = false;
+    };
+    ```
 
-- When a constructor would have a large number of parameters, most of which are optional.
-- When you want to create an immutable object.
-- When the construction process involves multiple steps or requires a specific order.
-- When you need to create different representations of an object (e.g., using a Director) while keeping the construction process consistent.
+    In this implementation, the _Builder’s core promise is **all-or-nothing construction**: `validate()` enforces the invariants and `build()` commits the result_. Factories supply parts; the Builder assembles and guards the gate. 
 
----
+* **Product: PerceptionPipeline — the Immutable Result**
 
-### 👍 Advantages
+    This is the finished object produced after the green gate. Configuration is frozen: no setters, no late rewiring, no hot-swapping. Only runtime methods exist (e.g., `start()`, `stop()`, `process()`/`run()`). Structure (LiDAR, Camera, Fusion) and invariants (e.g., `extrinsics_ok`) are captured at build time to keep behavior deterministic and thread-safe. To change wiring, choose a different Director recipe and rebuild—do not mutate.
 
-- **Readability**: Object creation is expressive and self-documenting.
-- **Flexibility**: Allows for fine-grained control over the construction process. Optional parameters are easy to omit.
-- **Reduces Errors**: Eliminates the need for long, error-prone parameter lists in constructors.
-- **Encapsulation**: The internal representation of the product is hidden from the client.
-- **Immutability**: The pattern is a perfect fit for creating immutable objects whose state cannot be changed after creation.
+    ```cpp
+    // --- The final Product --------------------------------------------
+    struct PerceptionPipeline {
+        LiDAR  lidar{};
+        Camera camera{};
+        Fusion fusion{};
+        bool   extrinsics_ok{false};
 
----
+        void run() const {
+            std::cout << "[RUN] Pipeline: LiDAR="  << static_cast<int>(lidar)
+                    << " Camera=" << static_cast<int>(camera)
+                    << " Fusion=" << static_cast<int>(fusion) << "\n";
+        }
+    };
+    ```
 
-### 👎 Disadvantages
+    The composition root creates the product; it does not contain it. In a real codebase the `PerceptionPipeline` sits inside the perception module/library, hidden behind interfaces (e.g., `IPerceptionSuite`). The root obtains a `std::unique_ptr<IPerceptionSuite>` from the Builder, then hands it off to the consumer (node/orchestrator/service). This keeps wiring and policy at the edge and implementation details deep in the module.   
+    
+    > In real AV stacks, `run()` means bring the perception graph online and keep it processing streams until shutdown. It's an ongoing execution loop (or node spin), not a one-off call—your _Builder just ensures the system is valid before you flip that switch_.
 
-- **Verbosity**: Requires creating a new `Builder` class for each `Product`, which can increase the overall amount of code.
-- **Complexity**: The initial setup is more complex than simply creating a constructor. For very simple objects, it is overkill.
 
----
 
-### 🧵 Conclusion
 
-In our [**design patterns series**](../../06/07/Design-Patterns.html) so far, we've explored the foundations of object creation. We started with the [**Factory Method**](../../06/07/Design-Patterns-Factory-Method.html) to let subclasses decide which objects to create, then leveled up with the [**Abstract Factory**](../../06/07/Design-Patterns-Abstract-Factory.html) to produce entire families of related objects.
+# Architecture diagram   
 
-With this post on the **Builder** pattern, we've now tackled the crucial challenge of constructing a single, complex object in a readable and flexible way. The Builder is an exceptional tool that trades a small amount of upfront boilerplate for tremendous long-term gains in API clarity, turning a mess of constructors into a powerful, fluent interface.
 
-So far, all these patterns have focused on the *flexibility* of creating objects. But what about *control*? What about an object that is so fundamental it must only ever exist *once* across your entire application? And why is that simple idea one of the most powerful, yet controversial, in all of software design?
+![alt text](/assets/images/DesignPatterns/Images/Builder/Builder1.png)
 
-Stay tuned for our next post, where we tackle one of the most famous and debated patterns of all time: the **Singleton**.
+Here’s the essence of your diagram :
+
+* **CompositionRoot = the only place that knows policy.**   
+  It creates the concrete `PipelineBuilder` (injecting the chosen **`ISensorSuiteFactory`** for Sim/R&D/Prod), passes it as an `IBuilder&` to the `PipelineDirector`, runs a recipe, then triggers `build(...)`. Everything about *which* factory/builder to use lives here.
+
+* **Director -> `IBuilder` is an *aggregation*.**   
+  The Director holds a reference to `IBuilder` (`b_`), _orchestrates the order of steps_ (`setupSimulation/RnD/Production`), and never calls `build()`. It doesn’t own the builder; it just drives it—classic open-diamond aggregation.
+
+* **`IBuilder` is the stable seam.**   
+  Recipes and tests depend on the interface, not the concrete class. This gives you _swap-ability_: mock builders for tests, a factory-backed builder for production, etc., without touching the Director.
+
+* **`PipelineBuilder` is the ConcreteBuilder.**    
+  It implements the fluent steps (`withLiDAR/withCamera/withExtrinsicsCalibrated/withFusion`), holds build-time state, runs the green gate (`validate` + `build`), and returns the product.
+
+  * Builder -> `ISensorSuiteFactory` is an aggregation (open diamond) *if you store the factory ref*. The builder **uses** the factory to obtain compatible parts during assembly.
+
+* **`ISensorSuiteFactory` has Sim/RnD/Prod implementations.**    
+  These concrete factories supply compatible families of parts (detector, tracker, fuser, etc.). Swapping the factory at the root switches vendors/configs without changing recipes.
+
+* **`PerceptionPipeline` is the Product and owns its modules.**    
+  The filled diamonds show composition: the pipeline owns `IDetector`, `ITracker`, and `IFuser`; their lifetimes are tied to the pipeline. After a successful build the pipeline is immutable (structure fixed), and only lifecycle/work methods (`start`, `stop`, `process`) are exposed.
+
+# Practical Implications & Engineering Trade-offs
+
+A well-designed Builder keeps construction cheap and pure: `build()` is $$O(config)$$, side-effect-free, and returns either a valid product or precise diagnostics. Heavy work shifts to `start()` (engine loads, device handles, threads) so `process()` stays allocation-free and predictable.
+
+Immutability after build buys determinism, easier concurrency, and freedom to tune memory layout for cache locality (owned modules, no shared singletons).
+
+An Abstract Factory lets you swap the fastest compatible backends per environment and cache expensive artifacts (e.g., TensorRT plans) keyed by configuration so repeated builds are near-zero cost.
+
+Keep the Director pure (ordering + defaults only) to make recipes testable and avoid hiding perf work; if sequences are static, consider staged/compile-time builders.
+
+Wire telemetry at the root (build/start/process timings, error categories) and fail fast when the green gate is red—clean construction and disciplined lifecycle control are what make the runtime path fast.
+
+
+# Conclusion: “Recipe over randomness: ship validated builds.”
+
+Builder makes the construction of an AV pipeline explicit, staged, and testable. Directors provide repeatable environment recipes. Abstract Factory supplies the right concrete parts. Together, they let you assemble Simulation/R&D/Production stacks from the same codebase—with constructors tamed, invariants enforced, and runtime surprises removed.
 
