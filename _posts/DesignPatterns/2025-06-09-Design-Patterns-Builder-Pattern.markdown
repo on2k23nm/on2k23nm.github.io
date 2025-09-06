@@ -2,13 +2,13 @@
 layout: default
 title: "Builder Pattern: Practitioner’s Notes on Composable System Design"
 seo_h1: "Builder Pattern: Practitioner’s Notes on Composable System Design"
-date: 2025-09-03 08:27:07 +0530
+date: 2025-09-06 09:44:19 +0530
 categories: design-patterns
 tags: [Design Patterns, cpp]
 mathjax: true
-description: "This post is a deep dive into the Abstract Factory pattern, exploring how it serves as a critical tool for improving the modularity and maintainability of autonomous vehicle software. Drawn from practical experience, these notes detail how the pattern can be used to architect systems that are robust and scalable, enabling the seamless management of entire hardware ecosystems."
+description: "Practitioner’s notes on the Builder pattern for autonomous-vehicle software—an applied, field-driven look at recipe-based assembly, consolidated diagnostics, and all-or-nothing creation. Not a step-by-step tutorial; these notes show how keeping wiring in the composition root, isolating vendor choices behind factories, and enforcing a green-gate build makes AV perception stacks modular, testable, and predictable."
 published: true
-placement_prio: 2
+placement_prio: 1
 pinned: false
 ---
 
