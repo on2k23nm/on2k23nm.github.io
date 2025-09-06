@@ -1,7 +1,7 @@
 ---
 layout: default
-title: "Builder Pattern: Practitioner’s Notes on Composable System Design"
-seo_h1: "Builder Pattern: Practitioner’s Notes on Composable System Design"
+title: "Immutable pipelines at scale: Builder + Abstract Factory in AV perception stack"
+seo_h1: "Immutable pipelines at scale: Builder + Abstract Factory in AV perception stack"
 date: 2025-09-06 09:44:19 +0530
 categories: design-patterns
 tags: [Design Patterns, cpp]
