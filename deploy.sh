@@ -5,8 +5,8 @@
 
 set -e  # Exit on error
 
-GITHUB_PAGES_REPO="https://github.com/on2k23nm/on2k23nm.github.io.git"
-GITHUB_PAGES_BRANCH="main"
+GITHUB_PAGES_REPO="https://github.com/on2k23nm/on2k26nm.github.io.git"
+GITHUB_PAGES_BRANCH="master"  # Change to 'main' if you rename the branch on GitHub
 SITE_DIR="_site"
 
 echo "📦 Building Jekyll site..."
