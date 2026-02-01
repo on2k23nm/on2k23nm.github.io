@@ -7,7 +7,7 @@ categories: design-patterns
 tags: [Design Patterns, cpp]
 mathjax: true
 description: "Practitioner’s notes on the Builder pattern for autonomous-vehicle software—an applied, field-driven look at recipe-based assembly, consolidated diagnostics, and all-or-nothing creation. Not a step-by-step tutorial; these notes show how keeping wiring in the composition root, isolating vendor choices behind factories, and enforcing a green-gate build makes AV perception stacks modular, testable, and predictable."
-published: true
+published: false
 placement_prio: 1
 pinned: false
 ---
