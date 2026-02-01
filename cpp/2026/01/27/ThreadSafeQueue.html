@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang=" en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>Design a Multiple Producer Multiple Consumer (MPMC) thread-safe queue in C++</title>
+    
+    <meta name="description" content="Comprehensive guide to designing a thread-safe queue with multiple implementation approaches">
+    
+
+    <link rel="canonical" href="https://on2k23nm.github.io/cpp/2026/01/27/ThreadSafeQueue.html">
+
+    <link rel="shortcut icon" href="/favicon.ico">
+
+    <meta property="og:title" content="Design a Multiple Producer Multiple Consumer (MPMC) thread-safe queue in C++">
+    <meta property="og:description" content="Comprehensive guide to designing a thread-safe queue with multiple implementation approaches">
+    <meta property="og:url" content="https://on2k23nm.github.io/cpp/2026/01/27/ThreadSafeQueue.html">
+    <meta property="og:site_name" content="Hack. Crash. Transcend."><meta property="og:type" content="article">
+    <meta property="article:published_time" content="2026-01-27T00:00:01+05:30"><meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Design a Multiple Producer Multiple Consumer (MPMC) thread-safe queue in C++">
+    <meta name="twitter:description" content="Comprehensive guide to designing a thread-safe queue with multiple implementation approaches"><link rel="stylesheet" href="/assets/css/main.css">
+    <link rel="stylesheet" href="/assets/css/subscription.css">
+
+    <!-- Your stylesheet -->
+    <link rel="stylesheet" href="/assets/css/main.css">
+    <link rel="stylesheet" href="/assets/css/subscription.css">
+
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4252008174002764"
+        crossorigin="anonymous"></script>
+
+    <meta name="google-site-verification" content="H0Tf6h_kdL03qvRv7KtC4i456PObcGwDPCxeiKFoll4" />
+
+    
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      
+      "@type": "BlogPosting",
+      "mainEntityOfPage": {
+        "@type": "WebPage",
+        "@id": "https://on2k23nm.github.io/cpp/2026/01/27/ThreadSafeQueue.html"
+      },
+      "headline": "Design a Multiple Producer Multiple Consumer (MPMC) thread-safe queue in C++",
+      
+      "datePublished": "2026-01-27T00:00:01+05:30",
+      "dateModified": "2026-01-27T00:00:01+05:30",
+      "author": {
+        "@type": "Person",
+        "name": "Your Name"
+      },
+       "publisher": {
+        "@type": "Organization",
+        "name": "Hack. Crash. Transcend.",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "https://on2k23nm.github.io/assets/images/logo.png"
+        }
+      },
+      "description": "Comprehensive guide to designing a thread-safe queue with multiple implementation approaches"
+      
+    }
+    </script>
+
+</head>
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-DTMB098MDX"></script>
+<script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag('js', new Date());
+    gtag('config', 'G-DTMB098MDX');
+</script>
+
+<body>
+    <header class="site-header">
+        <div class="wrapper">
+            <a class="site-title" href="/">Hack. Crash. Transcend.</a>
+            <nav class="site-nav">
+  <a class="page-link" href="/">Home</a>
+  <a class="page-link" href="/about/">About</a>
+</nav>
+
+        </div>
+    </header>
+
+    <main class="page-content" aria-label="Content">
+        <div class="wrapper">
+            <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+                <header class="post-header">
+                    <h1 class="post-title" itemprop="name headline">Design a Multiple Producer Multiple Consumer (MPMC) thread-safe queue in C++</h1>
+
+                    <p class="post-meta">
+                        <time datetime="2026-01-27T00:00:01+05:30" itemprop="datePublished">
+                            📅 January 27, 2026
+                        </time>
+                        &nbsp;
+                        ⏱️ 29-minute read
+                    </p>
+                </header>
+
+                <!-- 
+                <div class="post-tags">
+                    
+                    <span class="tag">cpp-core</span>
+                    
+                    <span class="tag">concurrency</span>
+                    
+                    <span class="tag">multithreading</span>
+                    
+                    <span class="tag">thread-safety</span>
+                    
+                    <span class="tag">data-structures</span>
+                    
+                </div>
+                 -->
+                
+                <div class="post-tags">
+                    <a class="tag" href="/tags/cpp-core">cpp-core</a>
+                    <a class="tag" href="/tags/concurrency">concurrency</a>
+                    <a class="tag" href="/tags/multithreading">multithreading</a>
+                    <a class="tag" href="/tags/thread-safety">thread-safety</a>
+                    <a class="tag" href="/tags/data-structures">data-structures</a>
+                    
+                </div>
+                
+                <div class="post-content" itemprop="articleBody">
+                    <h2 id="overview">Overview</h2>
+
+<h3 id="1-what-is-thread-safety">1. What is Thread Safety?</h3>
+
+<p><strong>Thread safety</strong> is a property of a piece of code that guarantees it will behave correctly—maintaining <strong>internal invariants</strong> (e.g., ensuring that a ‘size’ counter always reflects the actual number of nodes in a list, rather than becoming desynchronized during simultaneous updates) and <strong>data integrity</strong> (e.g., preventing a consumer from reading a half-constructed object or ensuring bits aren’t flipped during a concurrent write)—when executed by multiple threads simultaneously.</p>
+
+<!-- <img src="/assets/images/thread-safe-queue-producer-flow.png" alt="Producer Flow in Thread-Safe Queue" style="display: block; margin: 0 auto; width: 60%;" /> -->
+
+<p>An MPMC (Multiple Producer Multiple Consumer) thread-safe queue is a concurrent data structure that allows multiple producer threads to enqueue elements and multiple consumer threads to dequeue elements simultaneously without data races or corruption. The key challenges include:</p>
+
+<ul>
+  <li><strong>Mutual Exclusion</strong>: All shared state transitions (container + control flags) are serialized under a mutex to preserve invariants. Use a <code class="language-plaintext highlighter-rouge">std::mutex</code> to protect push/pop operations—keep the locked section short (just the queue modification), and for better performance, use separate locks for the front and back of the queue so one thread can push while another pops. Always use RAII (<code class="language-plaintext highlighter-rouge">std::lock_guard</code>, <code class="language-plaintext highlighter-rouge">std::unique_lock</code>) so the lock releases automatically even if something throws an exception.</li>
+  <li><strong>Synchronization</strong>: When the queue is empty, consumer threads shouldn’t spin-wait. Instead, they sleep on a <code class="language-plaintext highlighter-rouge">std::condition_variable</code> and wait on the predicate <code class="language-plaintext highlighter-rouge">!q.empty() || closed</code> to guarantee progress and handle spurious wakeups. After a producer pushes an item and releases the lock, it calls <code class="language-plaintext highlighter-rouge">notify_one()</code> to wake a waiting consumer (or <code class="language-plaintext highlighter-rouge">notify_all()</code> when shutting down the queue).</li>
+  <li><strong>Performance</strong>: Multiple threads fighting for the same lock creates a bottleneck. Minimize time inside the critical section by preparing data outside the lock, or split your queue into multiple independent queues (sharding) or use separate head/tail locks. If profiling shows serious contention, consider lock-free implementations with atomics and compare-and-swap, but watch for false sharing (use cache-line alignment/padding).</li>
+  <li><strong>Safety</strong>: Avoid the “Four Horsemen”—deadlocks (threads waiting on each other forever), race conditions (unpredictable results from timing), livelocks (threads endlessly reacting to each other), and undefined behavior. Always acquire locks in the same order, never hold a lock while calling user callbacks, use RAII so exceptions can’t leave locks held, notify outside the lock, use predicate-based waits to handle spurious wakeups, and provide a shutdown mechanism so blocked threads can exit cleanly.</li>
+</ul>
+
+<h2 id="design-considerations">Design Considerations</h2>
+
+<h3 id="step-1--define-the-problem-and-the-boundary-of-responsibility">Step 1 — Define the problem and the boundary of responsibility</h3>
+
+<p>We want a queue that can be accessed by multiple threads concurrently without corrupting its internal state or exposing partially-updated data to readers. The queue’s responsibility is narrowly scoped:</p>
+<ul>
+  <li>it must provide safe concurrent <code class="language-plaintext highlighter-rouge">push</code> and <code class="language-plaintext highlighter-rouge">pop</code> operations, and</li>
+  <li>it must define what happens when consumers have no work (empty queue) and when the system is shutting down.</li>
+</ul>
+
+<p>Everything else—task semantics, work distribution strategy, backpressure policy, and producer lifecycle—belongs to the application layer, not the queue.</p>
+
+<p>In other words: the queue is a synchronization boundary. If a bug happens outside (e.g., producers never signal shutdown), the queue should still behave predictably and avoid deadlocks <em>as long as the caller uses the defined API</em>.</p>
+
+<p><img src="/assets/images/queue-synchronization-boundary.png" alt="Queue Synchronization Boundary" style="display: block; margin: 0 auto; width: 40%;" /></p>
+
+<h3 id="step-2--state-the-concurrency-model-explicitly">Step 2 — State the concurrency model explicitly</h3>
+
+<p>The queue design begins by stating who can call what, concurrently. The baseline expectation is <strong>MPMC</strong> (multi-producer, multi-consumer): many threads may call <code class="language-plaintext highlighter-rouge">push()</code> at the same time, and many threads may call <code class="language-plaintext highlighter-rouge">pop()</code> at the same time.</p>
+
+<p>This matters because it determines the minimal synchronization requirements. An SPSC queue can be lock-free with simple atomics; MPMC generally requires either more complex lock-free algorithms or a lock-based critical section. Since this is the “basic mutex-based” implementation, we are intentionally choosing mutual exclusion to simplify correctness, while still being production-usable.</p>
+
+<h3 id="step-3--define-the-api-contract-in-terms-of-behaviors-not-just-functions">Step 3 — Define the API contract in terms of behaviors, not just functions</h3>
+
+<p>Before code, we declare what operations mean and what they guarantee.</p>
+
+<ul>
+  <li>
+    <p>A <code class="language-plaintext highlighter-rouge">push(T)</code> must atomically make a new item visible to consumers. “Atomically” here means consumers will never observe a half-constructed node or an inconsistent container state. The <code class="language-plaintext highlighter-rouge">push</code> should also trigger progress: if a consumer is blocked waiting for work, <code class="language-plaintext highlighter-rouge">push</code> should wake one of them so the system doesn’t stall.</p>
+  </li>
+  <li>
+    <p>A blocking pop (often named <code class="language-plaintext highlighter-rouge">wait_pop</code>, <code class="language-plaintext highlighter-rouge">pop_blocking</code>, etc.) must be a <em>sleeping wait</em>, not a spin loop. If the queue is empty, the consumer thread parks on a condition variable and wakes only when the predicate indicates it can make progress. A non-blocking <code class="language-plaintext highlighter-rouge">try_pop</code> is useful for polling loops and shutdown checks, but it should have a crisp contract: it returns immediately and succeeds only if an item is available at that instant.</p>
+  </li>
+</ul>
+
+<p>The key is that the <strong>queue defines progress and visibility guarantees, while the application decides how many threads exist</strong> and what “work” means.</p>
+
+<h3 id="step-4--establish-the-internal-invariants-the-must-never-be-broken-rules">Step 4 — Establish the internal invariants (the “must never be broken” rules)</h3>
+
+<p>To build a thread-safe data structure, you define invariants that must hold after every public operation, even when exceptions occur.</p>
+
+<p>For a basic queue, the core invariants are designed to prevent specific concurrency hazards:</p>
+
+<ol>
+  <li>
+    <p>The underlying container’s structure is consistent <br />
+Without synchronization, two threads performing a push can simultaneously update the “tail” pointer, causing one node to be overwritten and lost (a memory leak) or leaving a pointer referencing uninitialized memory. This creates a broken chain where a consumer thread follows a garbage address, leading to a segmentation fault or a “half-baked” state where a node is visible to readers before its data members are actually constructed.</p>
+  </li>
+  <li>
+    <p>Size-related observations (if exposed) match the container reality <br />
+If the size counter is updated independently of the data insertion, a race condition can cause the count to drift from the actual number of elements. For example, a consumer might see size &gt; 0 and attempt a pop, but because the producer was interrupted before finishing the actual data link, the consumer attempts to read a null object, or conversely, a consumer might deadlock by waiting on a queue that actually contains items the counter failed to acknowledge.</p>
+  </li>
+  <li>
+    <p>The shutdown/closed flag is consistent with the lifecycle state <br />
+If the <code class="language-plaintext highlighter-rouge">closed</code> flag is not tightly coupled with the synchronization primitives, a race condition (the “lost wakeup”) can leave threads stranded during shutdown. A consumer might read the flag as “open” and proceed to wait; however, if the shutdown signal arrives in the narrow window between the check and the wait, the consumer misses the notification and hangs indefinitely, preventing the application from exiting cleanly.</p>
+  </li>
+</ol>
+
+<p>Most importantly, there must be <strong>no data races</strong>: <em>every read/write of shared state that can be concurrently accessed must be synchronized</em>.</p>
+
+<p>From a correctness and efficiency standpoint, “thread-safe” is not just “put a mutex everywhere”—it means there is a coherent rule: <em>any access to shared state must happen while holding the mutex, and any waiting must re-check the predicate while holding the same mutex.</em> Adhering to this rule ensures your design satisfies two critical requirements:</p>
+
+<ul>
+  <li><strong>Robustness:</strong> This rule eliminates the <strong>Time-of-Check to Time-of-Use (TOCTOU)</strong> race condition by ensuring that the “reality” of the queue cannot change between the moment a thread checks a condition and the moment it executes the operation; it guarantees that internal invariants remain stable and that no thread ever acts on stale or “half-baked” information.</li>
+  <li><strong>Performance:</strong> This pattern is the only way to safely implement <strong>sleeping waits</strong> via condition variables, which allows consumer threads to remain suspended and consume zero CPU cycles until the exact moment work is available; this prevents the system from wasting power and processing time on “busy-waiting” loops that would otherwise throttle high-performance pipelines.</li>
+</ul>
+
+<h3 id="step-5--choose-the-synchronization-primitives-and-explain-why">Step 5 — Choose the synchronization primitives and explain why</h3>
+
+<p>For the basic design we use:</p>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">std::mutex</code> to protect the queue and its control flags.</li>
+  <li><code class="language-plaintext highlighter-rouge">std::condition_variable</code> to avoid busy waiting when the queue is empty.</li>
+</ul>
+
+<p>This pairing is standard practice because the mutex provides mutual exclusion (one writer at a time to the container), while the condition variable provides efficient waiting and waking without burning CPU cycles.</p>
+
+<p>A condition variable is not “a notification channel” by itself. <strong>The condition variable is only a sleep/wake mechanism; correctness comes from the predicate guarded by the mutex.</strong> That’s why every wait must be done as <code class="language-plaintext highlighter-rouge">cv.wait(lock, predicate)</code> or an equivalent loop.</p>
+
+<h3 id="step-6--define-the-wait-predicate-this-is-the-heart-of-the-design">Step 6 — Define the wait predicate (this is the heart of the design)</h3>
+
+<p>The blocking <code class="language-plaintext highlighter-rouge">pop</code> must wait on a predicate that represents “it is safe and meaningful to proceed.” For a queue, that predicate is typically:</p>
+
+<ul>
+  <li>proceed if there is data: <code class="language-plaintext highlighter-rouge">!queue.empty()</code></li>
+  <li>or proceed if shutdown is requested: <code class="language-plaintext highlighter-rouge">closed == true</code></li>
+</ul>
+
+<p>So the predicate is: <code class="language-plaintext highlighter-rouge">!queue.empty() || closed</code>.</p>
+
+<p>This addresses two separate realities: normal operation (items arriving) and lifecycle termination (threads must be able to exit cleanly). It also cleanly handles spurious wakeups because the predicate is re-evaluated under the lock every time the thread wakes.</p>
+
+<h3 id="step-7--specify-shutdown-semantics-precisely-avoid-done-means-">Step 7 — Specify shutdown semantics precisely (avoid “done means ???”)</h3>
+
+<p>Most real concurrency bugs come from vague shutdown behavior. So we define it precisely:</p>
+
+<p>We provide <code class="language-plaintext highlighter-rouge">close()</code> / <code class="language-plaintext highlighter-rouge">shutdown()</code> that sets a <code class="language-plaintext highlighter-rouge">closed</code> flag under the mutex and then wakes all waiting consumers via <code class="language-plaintext highlighter-rouge">notify_all()</code>. After closing, <code class="language-plaintext highlighter-rouge">push()</code> is either disallowed (return false / throw / ignore) depending on your policy, but it must be consistent.</p>
+
+<p>For consumers: if they wake and see <code class="language-plaintext highlighter-rouge">queue.empty() &amp;&amp; closed</code>, they return “no more work” immediately (commonly <code class="language-plaintext highlighter-rouge">false</code> or empty <code class="language-plaintext highlighter-rouge">std::optional</code>). This ensures no thread blocks forever when producers are finished.</p>
+
+<p>The important architect-level point: shutdown is not the same as “queue is empty.” Empty is a transient state; shutdown is a terminal state.</p>
+
+<h3 id="step-8--decide-notification-strategy-notify_one-vs-notify_all">Step 8 — Decide notification strategy: <code class="language-plaintext highlighter-rouge">notify_one</code> vs <code class="language-plaintext highlighter-rouge">notify_all</code></h3>
+
+<p>In normal operation, <code class="language-plaintext highlighter-rouge">push()</code> should typically call <code class="language-plaintext highlighter-rouge">notify_one()</code> because one new item usually enables progress for one consumer. This avoids waking multiple threads only to have them contend for the same mutex and find no additional work—classic thundering herd.</p>
+
+<p><code class="language-plaintext highlighter-rouge">notify_all()</code> is reserved for state transitions that affect <em>all waiters</em>, most notably shutdown. When the queue closes, every waiting consumer must be released so each can observe <code class="language-plaintext highlighter-rouge">closed == true</code> and exit. That is why shutdown uses <code class="language-plaintext highlighter-rouge">notify_all()</code> even if no items are added.</p>
+
+<p>Also: you can notify either before or after releasing the lock; the usual recommendation is <strong>modify shared state under lock → release lock → notify</strong> to reduce unnecessary contention, while still relying on the predicate for correctness.</p>
+
+<h3 id="step-9--keep-the-critical-section-small-performance-posture">Step 9 — Keep the critical section small (performance posture)</h3>
+
+<p>Even in the “basic” version, we design with performance posture in mind. The mutex-protected section should only cover the minimal work needed to maintain invariants: pushing into the container, popping from it, and touching shared flags.</p>
+
+<p>Anything expensive—allocations, conversions, heavy object construction—should ideally be done outside the lock when possible (subject to your API shape). This keeps contention low and improves throughput under multi-threaded load.</p>
+
+<p>The key bottleneck to recognize: as concurrency increases, mutex contention becomes the limiter. The basic queue is correct and acceptable for many systems, but it has a known scaling profile.</p>
+
+<h3 id="step-10--exception-safety-and-no-invariant-left-behind">Step 10 — Exception safety and “no invariant left behind”</h3>
+
+<p>A correct queue must remain valid even if element move/copy constructors throw. The design must ensure that operations either complete fully or leave the queue unchanged (strong guarantee) or at least leave it in a valid state (basic guarantee).</p>
+
+<p>Using RAII locks (<code class="language-plaintext highlighter-rouge">std::lock_guard</code>, <code class="language-plaintext highlighter-rouge">std::unique_lock</code>) ensures the mutex is always released, even when exceptions occur. Then the remaining requirement is: container modifications must not leave structural corruption. Standard containers maintain their own invariants; our job is to ensure we don’t expose partial state across threads.</p>
+
+<h3 id="step-11--clarify-what-this-basic-design-is-intentionally-not-doing">Step 11 — Clarify what this basic design is intentionally not doing</h3>
+
+<p>To keep correctness transparent, the basic design does not attempt lock-free progress, sharding, work stealing, bounded backpressure, fairness guarantees, or priority scheduling. Those are higher-level or specialized requirements.</p>
+
+<p>This statement is important because it prevents over-claiming. Clear documentation of what a design guarantees—and what it does not—builds trust and sets proper expectations.</p>
+
+<h3 id="step-12--summarize-the-contract-in-one-sentence">Step 12 — Summarize the contract in one sentence</h3>
+
+<p>This basic mutex-based queue provides <strong>MPMC-safe push/pop</strong>, <strong>blocking pop via condition-variable predicate</strong>, and a <strong>defined shutdown path</strong> so consumers can exit cleanly without spinning or deadlocking.</p>
+
+<hr />
+
+<h2 id="basic-implementation-mutex-based">Basic Implementation (Mutex-Based)</h2>
+
+<p>The simplest approach uses a mutex to protect all operations:</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include</span> <span class="cpf">&lt;condition_variable&gt;</span><span class="cp">
+#include</span> <span class="cpf">&lt;cstddef&gt;</span><span class="cp">
+#include</span> <span class="cpf">&lt;memory&gt;</span><span class="cp">
+#include</span> <span class="cpf">&lt;mutex&gt;</span><span class="cp">
+#include</span> <span class="cpf">&lt;optional&gt;</span><span class="cp">
+#include</span> <span class="cpf">&lt;utility&gt;</span><span class="cp">
+#include</span> <span class="cpf">&lt;atomic&gt;</span><span class="cp">
+</span>
+<span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="nc">T</span><span class="p">&gt;</span>
+<span class="k">class</span> <span class="nc">ThreadSafeQueue</span> <span class="p">{</span>
+<span class="nl">private:</span>
+    <span class="k">struct</span> <span class="nc">Node</span> <span class="p">{</span>
+        <span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">data</span><span class="p">;</span>
+        <span class="n">std</span><span class="o">::</span><span class="n">unique_ptr</span><span class="o">&lt;</span><span class="n">Node</span><span class="o">&gt;</span> <span class="n">next</span><span class="p">;</span>
+    <span class="p">};</span>
+
+    <span class="c1">// Two-lock queue internals (performance + reduced contention)</span>
+    <span class="k">mutable</span> <span class="n">std</span><span class="o">::</span><span class="n">mutex</span> <span class="n">head_mtx_</span><span class="p">;</span>
+    <span class="k">mutable</span> <span class="n">std</span><span class="o">::</span><span class="n">mutex</span> <span class="n">tail_mtx_</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">condition_variable</span> <span class="n">data_cv_</span><span class="p">;</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">unique_ptr</span><span class="o">&lt;</span><span class="n">Node</span><span class="o">&gt;</span> <span class="n">head_</span><span class="p">;</span>
+    <span class="n">Node</span><span class="o">*</span> <span class="n">tail_</span><span class="p">;</span>
+
+    <span class="c1">// Safety: close-aware behavior</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">atomic</span><span class="o">&lt;</span><span class="kt">bool</span><span class="o">&gt;</span> <span class="n">closed_</span><span class="p">{</span><span class="nb">false</span><span class="p">};</span>
+
+    <span class="c1">// Performance/utility: O(1) size</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">atomic</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="kt">size_t</span><span class="o">&gt;</span> <span class="n">size_</span><span class="p">{</span><span class="mi">0</span><span class="p">};</span>
+
+    <span class="c1">// Head-side helpers</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">unique_lock</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&gt;</span> <span class="n">wait_for_data</span><span class="p">()</span> <span class="p">{</span>
+        <span class="n">std</span><span class="o">::</span><span class="n">unique_lock</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&gt;</span> <span class="n">head_lock</span><span class="p">(</span><span class="n">head_mtx_</span><span class="p">);</span>
+        <span class="n">data_cv_</span><span class="p">.</span><span class="n">wait</span><span class="p">(</span><span class="n">head_lock</span><span class="p">,</span> <span class="p">[</span><span class="k">this</span><span class="p">]</span> <span class="p">{</span>
+            <span class="c1">// Predicate-based wait handles spurious wakeups.</span>
+            <span class="c1">// Wake when:</span>
+            <span class="c1">// 1) there is data, OR</span>
+            <span class="c1">// 2) queue is closed (so consumers can exit cleanly)</span>
+            <span class="k">return</span> <span class="n">closed_</span><span class="p">.</span><span class="n">load</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">memory_order_acquire</span><span class="p">)</span> <span class="o">||</span> <span class="n">head_</span><span class="p">.</span><span class="n">get</span><span class="p">()</span> <span class="o">!=</span> <span class="n">get_tail</span><span class="p">();</span>
+        <span class="p">});</span>
+        <span class="k">return</span> <span class="n">head_lock</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="n">Node</span><span class="o">*</span> <span class="nf">get_tail</span><span class="p">()</span> <span class="k">const</span> <span class="p">{</span>
+        <span class="n">std</span><span class="o">::</span><span class="n">lock_guard</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&gt;</span> <span class="n">tail_lock</span><span class="p">(</span><span class="n">tail_mtx_</span><span class="p">);</span>
+        <span class="k">return</span> <span class="n">tail_</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">unique_ptr</span><span class="o">&lt;</span><span class="n">Node</span><span class="o">&gt;</span> <span class="n">pop_head</span><span class="p">()</span> <span class="p">{</span>
+        <span class="c1">// head_mtx_ must already be held</span>
+        <span class="k">auto</span> <span class="n">old_head</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">head_</span><span class="p">);</span>
+        <span class="n">head_</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">old_head</span><span class="o">-&gt;</span><span class="n">next</span><span class="p">);</span>
+        <span class="k">return</span> <span class="n">old_head</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">try_pop_shared</span><span class="p">()</span> <span class="p">{</span>
+        <span class="n">std</span><span class="o">::</span><span class="n">lock_guard</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&gt;</span> <span class="n">head_lock</span><span class="p">(</span><span class="n">head_mtx_</span><span class="p">);</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="n">head_</span><span class="p">.</span><span class="n">get</span><span class="p">()</span> <span class="o">==</span> <span class="n">get_tail</span><span class="p">())</span> <span class="p">{</span>
+            <span class="k">return</span> <span class="p">{};</span>
+        <span class="p">}</span>
+
+        <span class="k">auto</span> <span class="n">old_head</span> <span class="o">=</span> <span class="n">pop_head</span><span class="p">();</span>
+        <span class="n">size_</span><span class="p">.</span><span class="n">fetch_sub</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="n">memory_order_release</span><span class="p">);</span>
+        <span class="k">return</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">old_head</span><span class="o">-&gt;</span><span class="n">data</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">wait_pop_shared</span><span class="p">()</span> <span class="p">{</span>
+        <span class="k">auto</span> <span class="n">head_lock</span> <span class="o">=</span> <span class="n">wait_for_data</span><span class="p">();</span>
+
+        <span class="c1">// If closed and empty -&gt; exit cleanly</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">head_</span><span class="p">.</span><span class="n">get</span><span class="p">()</span> <span class="o">==</span> <span class="n">get_tail</span><span class="p">())</span> <span class="p">{</span>
+            <span class="k">return</span> <span class="p">{};</span>
+        <span class="p">}</span>
+
+        <span class="k">auto</span> <span class="n">old_head</span> <span class="o">=</span> <span class="n">pop_head</span><span class="p">();</span>
+        <span class="n">size_</span><span class="p">.</span><span class="n">fetch_sub</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="n">memory_order_release</span><span class="p">);</span>
+        <span class="k">return</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">old_head</span><span class="o">-&gt;</span><span class="n">data</span><span class="p">);</span>
+    <span class="p">}</span>
+
+<span class="k">public</span><span class="o">:</span>
+    <span class="n">ThreadSafeQueue</span><span class="p">()</span> <span class="o">:</span> <span class="n">head_</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">make_unique</span><span class="o">&lt;</span><span class="n">Node</span><span class="o">&gt;</span><span class="p">()),</span> <span class="n">tail_</span><span class="p">(</span><span class="n">head_</span><span class="p">.</span><span class="n">get</span><span class="p">())</span> <span class="p">{}</span>
+
+    <span class="n">ThreadSafeQueue</span><span class="p">(</span><span class="k">const</span> <span class="n">ThreadSafeQueue</span><span class="o">&amp;</span><span class="p">)</span> <span class="o">=</span> <span class="k">delete</span><span class="p">;</span>
+    <span class="n">ThreadSafeQueue</span><span class="o">&amp;</span> <span class="k">operator</span><span class="o">=</span><span class="p">(</span><span class="k">const</span> <span class="n">ThreadSafeQueue</span><span class="o">&amp;</span><span class="p">)</span> <span class="o">=</span> <span class="k">delete</span><span class="p">;</span>
+
+    <span class="c1">// ---- Producer API ----</span>
+
+    <span class="c1">// Push by value (supports move)</span>
+    <span class="kt">bool</span> <span class="nf">push</span><span class="p">(</span><span class="n">T</span> <span class="n">value</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="n">emplace</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">value</span><span class="p">));</span>
+    <span class="p">}</span>
+
+    <span class="c1">// Perfect-forwarding emplace</span>
+    <span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span><span class="o">...</span> <span class="nc">Args</span><span class="p">&gt;</span>
+    <span class="kt">bool</span> <span class="nf">emplace</span><span class="p">(</span><span class="n">Args</span><span class="o">&amp;&amp;</span><span class="p">...</span> <span class="n">args</span><span class="p">)</span> <span class="p">{</span>
+        <span class="c1">// Allocate/construct OUTSIDE the lock to keep critical section short</span>
+        <span class="k">auto</span> <span class="n">new_data</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">forward</span><span class="o">&lt;</span><span class="n">Args</span><span class="o">&gt;</span><span class="p">(</span><span class="n">args</span><span class="p">)...);</span>
+        <span class="k">auto</span> <span class="n">new_node</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">make_unique</span><span class="o">&lt;</span><span class="n">Node</span><span class="o">&gt;</span><span class="p">();</span>
+        <span class="n">Node</span><span class="o">*</span> <span class="n">new_tail_ptr</span> <span class="o">=</span> <span class="n">new_node</span><span class="p">.</span><span class="n">get</span><span class="p">();</span>
+
+        <span class="p">{</span>
+            <span class="n">std</span><span class="o">::</span><span class="n">lock_guard</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&gt;</span> <span class="n">tail_lock</span><span class="p">(</span><span class="n">tail_mtx_</span><span class="p">);</span>
+
+            <span class="c1">// If closed, reject new items (safety: no silent enqueues after shutdown)</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">closed_</span><span class="p">.</span><span class="n">load</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">memory_order_acquire</span><span class="p">))</span> <span class="p">{</span>
+                <span class="k">return</span> <span class="nb">false</span><span class="p">;</span>
+            <span class="p">}</span>
+
+            <span class="n">tail_</span><span class="o">-&gt;</span><span class="n">data</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">new_data</span><span class="p">);</span>
+            <span class="n">tail_</span><span class="o">-&gt;</span><span class="n">next</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">new_node</span><span class="p">);</span>
+            <span class="n">tail_</span> <span class="o">=</span> <span class="n">new_tail_ptr</span><span class="p">;</span>
+
+            <span class="n">size_</span><span class="p">.</span><span class="n">fetch_add</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="n">memory_order_release</span><span class="p">);</span>
+        <span class="p">}</span>
+
+        <span class="c1">// Notify AFTER releasing the lock (avoids waking a thread just to block again)</span>
+        <span class="n">data_cv_</span><span class="p">.</span><span class="n">notify_one</span><span class="p">();</span>
+        <span class="k">return</span> <span class="nb">true</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="c1">// ---- Consumer API ----</span>
+
+    <span class="c1">// Non-blocking: returns empty optional if no item available</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">optional</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">try_pop</span><span class="p">()</span> <span class="p">{</span>
+        <span class="k">auto</span> <span class="n">data</span> <span class="o">=</span> <span class="n">try_pop_shared</span><span class="p">();</span>
+        <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">data</span><span class="p">)</span> <span class="k">return</span> <span class="n">std</span><span class="o">::</span><span class="n">nullopt</span><span class="p">;</span>
+        <span class="k">return</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="o">*</span><span class="n">data</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="c1">// Blocking: waits for data or close(); returns false if closed AND empty</span>
+    <span class="kt">bool</span> <span class="nf">wait_pop</span><span class="p">(</span><span class="n">T</span><span class="o">&amp;</span> <span class="n">out</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">auto</span> <span class="n">data</span> <span class="o">=</span> <span class="n">wait_pop_shared</span><span class="p">();</span>
+        <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">data</span><span class="p">)</span> <span class="k">return</span> <span class="nb">false</span><span class="p">;</span> <span class="c1">// closed + empty</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="o">*</span><span class="n">data</span><span class="p">);</span>
+        <span class="k">return</span> <span class="nb">true</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="c1">// Blocking convenience: returns optional</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">optional</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">wait_pop</span><span class="p">()</span> <span class="p">{</span>
+        <span class="k">auto</span> <span class="n">data</span> <span class="o">=</span> <span class="n">wait_pop_shared</span><span class="p">();</span>
+        <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">data</span><span class="p">)</span> <span class="k">return</span> <span class="n">std</span><span class="o">::</span><span class="n">nullopt</span><span class="p">;</span>
+        <span class="k">return</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="o">*</span><span class="n">data</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="c1">// ---- Lifecycle / Safety ----</span>
+
+    <span class="c1">// Closes the queue:</span>
+    <span class="c1">// - further pushes are rejected</span>
+    <span class="c1">// - all waiters wake up</span>
+    <span class="kt">void</span> <span class="nf">close</span><span class="p">()</span> <span class="p">{</span>
+        <span class="n">closed_</span><span class="p">.</span><span class="n">store</span><span class="p">(</span><span class="nb">true</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="n">memory_order_release</span><span class="p">);</span>
+        <span class="n">data_cv_</span><span class="p">.</span><span class="n">notify_all</span><span class="p">();</span>
+    <span class="p">}</span>
+
+    <span class="kt">bool</span> <span class="nf">closed</span><span class="p">()</span> <span class="k">const</span> <span class="k">noexcept</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="n">closed_</span><span class="p">.</span><span class="n">load</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">memory_order_acquire</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="c1">// Approx. O(1) size (atomic). Exact for this implementation’s push/pop paths.</span>
+    <span class="n">std</span><span class="o">::</span><span class="kt">size_t</span> <span class="nf">size</span><span class="p">()</span> <span class="k">const</span> <span class="k">noexcept</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="n">size_</span><span class="p">.</span><span class="n">load</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">memory_order_acquire</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="kt">bool</span> <span class="n">empty</span><span class="p">()</span> <span class="k">const</span> <span class="k">noexcept</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="n">size</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="p">}</span>
+<span class="p">};</span>
+
+</code></pre></div></div>
+
+<h2 id="key-design-decisions">Key Design Decisions</h2>
+
+<h3 id="1-synchronization-strategy">1. Synchronization Strategy</h3>
+
+<p><strong>Condition Variables</strong>:</p>
+<ul>
+  <li>Use <code class="language-plaintext highlighter-rouge">std::condition_variable</code> to block consumers when queue is empty</li>
+  <li><code class="language-plaintext highlighter-rouge">notify_one()</code> after each push to wake waiting threads</li>
+  <li>More efficient than busy-waiting or polling</li>
+</ul>
+
+<p><strong>Lock Granularity</strong>:</p>
+<ul>
+  <li>Fine-grained: Separate locks for head and tail (more complex)</li>
+  <li>Coarse-grained: Single lock for entire queue (simpler, but higher contention)</li>
+</ul>
+
+<h3 id="2-exception-safety">2. Exception Safety</h3>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kt">void</span> <span class="nf">push</span><span class="p">(</span><span class="n">T</span> <span class="n">value</span><span class="p">)</span> <span class="p">{</span>
+    <span class="p">{</span>
+        <span class="n">std</span><span class="o">::</span><span class="n">lock_guard</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&gt;</span> <span class="n">lock</span><span class="p">(</span><span class="n">mutex_</span><span class="p">);</span>
+        <span class="n">queue_</span><span class="p">.</span><span class="n">push</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">value</span><span class="p">));</span>  <span class="c1">// May throw</span>
+    <span class="p">}</span>  <span class="c1">// Lock released even if exception</span>
+    <span class="n">cv_</span><span class="p">.</span><span class="n">notify_one</span><span class="p">();</span>  <span class="c1">// Outside lock to avoid holding during notification</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p><strong>Important considerations</strong>:</p>
+<ul>
+  <li>Always notify outside the lock to prevent unnecessary blocking</li>
+  <li>Use RAII locks (<code class="language-plaintext highlighter-rouge">lock_guard</code>, <code class="language-plaintext highlighter-rouge">unique_lock</code>) for exception safety</li>
+  <li>Move semantics to avoid unnecessary copies</li>
+</ul>
+
+<h3 id="3-bounded-vs-unbounded-queue">3. Bounded vs Unbounded Queue</h3>
+
+<p><strong>Unbounded</strong> (shown above):</p>
+<ul>
+  <li>Can grow indefinitely</li>
+  <li>Simpler implementation</li>
+  <li>Risk of memory exhaustion</li>
+</ul>
+
+<p><strong>Bounded</strong> (fixed capacity):</p>
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="nc">T</span><span class="p">&gt;</span>
+<span class="k">class</span> <span class="nc">BoundedThreadSafeQueue</span> <span class="p">{</span>
+<span class="nl">private:</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">queue</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">queue_</span><span class="p">;</span>
+    <span class="kt">size_t</span> <span class="n">capacity_</span><span class="p">;</span>
+    <span class="k">mutable</span> <span class="n">std</span><span class="o">::</span><span class="n">mutex</span> <span class="n">mutex_</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">condition_variable</span> <span class="n">cv_not_full_</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">condition_variable</span> <span class="n">cv_not_empty_</span><span class="p">;</span>
+    
+<span class="nl">public:</span>
+    <span class="k">explicit</span> <span class="n">BoundedThreadSafeQueue</span><span class="p">(</span><span class="kt">size_t</span> <span class="n">capacity</span><span class="p">)</span> 
+        <span class="o">:</span> <span class="n">capacity_</span><span class="p">(</span><span class="n">capacity</span><span class="p">)</span> <span class="p">{}</span>
+    
+    <span class="kt">void</span> <span class="nf">push</span><span class="p">(</span><span class="n">T</span> <span class="n">value</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">std</span><span class="o">::</span><span class="n">unique_lock</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&gt;</span> <span class="n">lock</span><span class="p">(</span><span class="n">mutex_</span><span class="p">);</span>
+        <span class="n">cv_not_full_</span><span class="p">.</span><span class="n">wait</span><span class="p">(</span><span class="n">lock</span><span class="p">,</span> <span class="p">[</span><span class="k">this</span><span class="p">]</span> <span class="p">{</span> 
+            <span class="k">return</span> <span class="n">queue_</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;</span> <span class="n">capacity_</span><span class="p">;</span> 
+        <span class="p">});</span>
+        <span class="n">queue_</span><span class="p">.</span><span class="n">push</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">value</span><span class="p">));</span>
+        <span class="n">lock</span><span class="p">.</span><span class="n">unlock</span><span class="p">();</span>
+        <span class="n">cv_not_empty_</span><span class="p">.</span><span class="n">notify_one</span><span class="p">();</span>
+    <span class="p">}</span>
+    
+    <span class="n">T</span> <span class="nf">pop</span><span class="p">()</span> <span class="p">{</span>
+        <span class="n">std</span><span class="o">::</span><span class="n">unique_lock</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&gt;</span> <span class="n">lock</span><span class="p">(</span><span class="n">mutex_</span><span class="p">);</span>
+        <span class="n">cv_not_empty_</span><span class="p">.</span><span class="n">wait</span><span class="p">(</span><span class="n">lock</span><span class="p">,</span> <span class="p">[</span><span class="k">this</span><span class="p">]</span> <span class="p">{</span> 
+            <span class="k">return</span> <span class="o">!</span><span class="n">queue_</span><span class="p">.</span><span class="n">empty</span><span class="p">();</span> 
+        <span class="p">});</span>
+        <span class="n">T</span> <span class="n">value</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">queue_</span><span class="p">.</span><span class="n">front</span><span class="p">());</span>
+        <span class="n">queue_</span><span class="p">.</span><span class="n">pop</span><span class="p">();</span>
+        <span class="n">lock</span><span class="p">.</span><span class="n">unlock</span><span class="p">();</span>
+        <span class="n">cv_not_full_</span><span class="p">.</span><span class="n">notify_one</span><span class="p">();</span>
+        <span class="k">return</span> <span class="n">value</span><span class="p">;</span>
+    <span class="p">}</span>
+<span class="p">};</span>
+</code></pre></div></div>
+
+<h3 id="4-shutdowntermination-support">4. Shutdown/Termination Support</h3>
+
+<p>For graceful shutdown, add a done flag:</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="nc">T</span><span class="p">&gt;</span>
+<span class="k">class</span> <span class="nc">ThreadSafeQueue</span> <span class="p">{</span>
+<span class="nl">private:</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">queue</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">queue_</span><span class="p">;</span>
+    <span class="k">mutable</span> <span class="n">std</span><span class="o">::</span><span class="n">mutex</span> <span class="n">mutex_</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">condition_variable</span> <span class="n">cv_</span><span class="p">;</span>
+    <span class="kt">bool</span> <span class="n">done_</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span>
+    
+<span class="nl">public:</span>
+    <span class="kt">void</span> <span class="n">shutdown</span><span class="p">()</span> <span class="p">{</span>
+        <span class="p">{</span>
+            <span class="n">std</span><span class="o">::</span><span class="n">lock_guard</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&gt;</span> <span class="n">lock</span><span class="p">(</span><span class="n">mutex_</span><span class="p">);</span>
+            <span class="n">done_</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+        <span class="p">}</span>
+        <span class="n">cv_</span><span class="p">.</span><span class="n">notify_all</span><span class="p">();</span>
+    <span class="p">}</span>
+    
+    <span class="n">std</span><span class="o">::</span><span class="n">optional</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">pop</span><span class="p">()</span> <span class="p">{</span>
+        <span class="n">std</span><span class="o">::</span><span class="n">unique_lock</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&gt;</span> <span class="n">lock</span><span class="p">(</span><span class="n">mutex_</span><span class="p">);</span>
+        <span class="n">cv_</span><span class="p">.</span><span class="n">wait</span><span class="p">(</span><span class="n">lock</span><span class="p">,</span> <span class="p">[</span><span class="k">this</span><span class="p">]</span> <span class="p">{</span> 
+            <span class="k">return</span> <span class="o">!</span><span class="n">queue_</span><span class="p">.</span><span class="n">empty</span><span class="p">()</span> <span class="o">||</span> <span class="n">done_</span><span class="p">;</span> 
+        <span class="p">});</span>
+        
+        <span class="k">if</span> <span class="p">(</span><span class="n">queue_</span><span class="p">.</span><span class="n">empty</span><span class="p">())</span> <span class="p">{</span>
+            <span class="k">return</span> <span class="n">std</span><span class="o">::</span><span class="n">nullopt</span><span class="p">;</span>  <span class="c1">// Shutdown occurred</span>
+        <span class="p">}</span>
+        
+        <span class="n">T</span> <span class="n">value</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">queue_</span><span class="p">.</span><span class="n">front</span><span class="p">());</span>
+        <span class="n">queue_</span><span class="p">.</span><span class="n">pop</span><span class="p">();</span>
+        <span class="k">return</span> <span class="n">value</span><span class="p">;</span>
+    <span class="p">}</span>
+<span class="p">};</span>
+</code></pre></div></div>
+
+<h2 id="advanced-lock-free-implementation">Advanced: Lock-Free Implementation</h2>
+
+<p>For maximum performance in high-contention scenarios:</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include</span> <span class="cpf">&lt;atomic&gt;</span><span class="cp">
+#include</span> <span class="cpf">&lt;memory&gt;</span><span class="cp">
+</span>
+<span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="nc">T</span><span class="p">&gt;</span>
+<span class="k">class</span> <span class="nc">LockFreeQueue</span> <span class="p">{</span>
+<span class="nl">private:</span>
+    <span class="k">struct</span> <span class="nc">Node</span> <span class="p">{</span>
+        <span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">data</span><span class="p">;</span>
+        <span class="n">std</span><span class="o">::</span><span class="n">atomic</span><span class="o">&lt;</span><span class="n">Node</span><span class="o">*&gt;</span> <span class="n">next</span><span class="p">;</span>
+        
+        <span class="n">Node</span><span class="p">()</span> <span class="o">:</span> <span class="n">next</span><span class="p">(</span><span class="nb">nullptr</span><span class="p">)</span> <span class="p">{}</span>
+    <span class="p">};</span>
+    
+    <span class="n">std</span><span class="o">::</span><span class="n">atomic</span><span class="o">&lt;</span><span class="n">Node</span><span class="o">*&gt;</span> <span class="n">head_</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">atomic</span><span class="o">&lt;</span><span class="n">Node</span><span class="o">*&gt;</span> <span class="n">tail_</span><span class="p">;</span>
+    
+<span class="k">public</span><span class="o">:</span>
+    <span class="n">LockFreeQueue</span><span class="p">()</span> <span class="p">{</span>
+        <span class="n">Node</span><span class="o">*</span> <span class="n">dummy</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Node</span><span class="p">();</span>
+        <span class="n">head_</span><span class="p">.</span><span class="n">store</span><span class="p">(</span><span class="n">dummy</span><span class="p">);</span>
+        <span class="n">tail_</span><span class="p">.</span><span class="n">store</span><span class="p">(</span><span class="n">dummy</span><span class="p">);</span>
+    <span class="p">}</span>
+    
+    <span class="o">~</span><span class="n">LockFreeQueue</span><span class="p">()</span> <span class="p">{</span>
+        <span class="k">while</span> <span class="p">(</span><span class="n">Node</span><span class="o">*</span> <span class="n">old_head</span> <span class="o">=</span> <span class="n">head_</span><span class="p">.</span><span class="n">load</span><span class="p">())</span> <span class="p">{</span>
+            <span class="n">head_</span><span class="p">.</span><span class="n">store</span><span class="p">(</span><span class="n">old_head</span><span class="o">-&gt;</span><span class="n">next</span><span class="p">);</span>
+            <span class="k">delete</span> <span class="n">old_head</span><span class="p">;</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+    
+    <span class="kt">void</span> <span class="nf">push</span><span class="p">(</span><span class="n">T</span> <span class="n">value</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">auto</span> <span class="n">data</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">value</span><span class="p">));</span>
+        <span class="n">Node</span><span class="o">*</span> <span class="n">new_node</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Node</span><span class="p">();</span>
+        <span class="n">Node</span><span class="o">*</span> <span class="n">old_tail</span> <span class="o">=</span> <span class="n">tail_</span><span class="p">.</span><span class="n">load</span><span class="p">();</span>
+        
+        <span class="k">while</span> <span class="p">(</span><span class="nb">true</span><span class="p">)</span> <span class="p">{</span>
+            <span class="n">old_tail</span><span class="o">-&gt;</span><span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="p">;</span>
+            <span class="n">Node</span><span class="o">*</span> <span class="n">null_ptr</span> <span class="o">=</span> <span class="nb">nullptr</span><span class="p">;</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">old_tail</span><span class="o">-&gt;</span><span class="n">next</span><span class="p">.</span><span class="n">compare_exchange_strong</span><span class="p">(</span><span class="n">null_ptr</span><span class="p">,</span> <span class="n">new_node</span><span class="p">))</span> <span class="p">{</span>
+                <span class="n">tail_</span><span class="p">.</span><span class="n">compare_exchange_weak</span><span class="p">(</span><span class="n">old_tail</span><span class="p">,</span> <span class="n">new_node</span><span class="p">);</span>
+                <span class="k">return</span><span class="p">;</span>
+            <span class="p">}</span>
+            <span class="n">old_tail</span> <span class="o">=</span> <span class="n">tail_</span><span class="p">.</span><span class="n">load</span><span class="p">();</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+    
+    <span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">try_pop</span><span class="p">()</span> <span class="p">{</span>
+        <span class="n">Node</span><span class="o">*</span> <span class="n">old_head</span> <span class="o">=</span> <span class="n">head_</span><span class="p">.</span><span class="n">load</span><span class="p">();</span>
+        <span class="k">while</span> <span class="p">(</span><span class="n">old_head</span> <span class="o">!=</span> <span class="n">tail_</span><span class="p">.</span><span class="n">load</span><span class="p">())</span> <span class="p">{</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">head_</span><span class="p">.</span><span class="n">compare_exchange_weak</span><span class="p">(</span><span class="n">old_head</span><span class="p">,</span> <span class="n">old_head</span><span class="o">-&gt;</span><span class="n">next</span><span class="p">))</span> <span class="p">{</span>
+                <span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">result</span> <span class="o">=</span> <span class="n">old_head</span><span class="o">-&gt;</span><span class="n">next</span><span class="o">-&gt;</span><span class="n">data</span><span class="p">;</span>
+                <span class="k">delete</span> <span class="n">old_head</span><span class="p">;</span>
+                <span class="k">return</span> <span class="n">result</span><span class="p">;</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
+        <span class="k">return</span> <span class="nb">nullptr</span><span class="p">;</span>
+    <span class="p">}</span>
+<span class="p">};</span>
+</code></pre></div></div>
+
+<p><strong>Challenges with lock-free</strong>:</p>
+<ul>
+  <li>Complex to implement correctly</li>
+  <li>ABA problem requires careful handling</li>
+  <li>Memory reclamation is difficult (use hazard pointers or epoch-based reclamation)</li>
+  <li>Debugging is extremely challenging</li>
+</ul>
+
+<h2 id="performance-considerations">Performance Considerations</h2>
+
+<h3 id="1-lock-contention-reduction">1. Lock Contention Reduction</h3>
+
+<p><strong>Strategy 1</strong>: Multiple queues (sharding)</p>
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="nc">T</span><span class="p">&gt;</span>
+<span class="k">class</span> <span class="nc">ShardedQueue</span> <span class="p">{</span>
+<span class="nl">private:</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">ThreadSafeQueue</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;</span> <span class="n">shards_</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">atomic</span><span class="o">&lt;</span><span class="kt">size_t</span><span class="o">&gt;</span> <span class="n">counter_</span><span class="p">{</span><span class="mi">0</span><span class="p">};</span>
+    
+<span class="k">public</span><span class="o">:</span>
+    <span class="k">explicit</span> <span class="nf">ShardedQueue</span><span class="p">(</span><span class="kt">size_t</span> <span class="n">num_shards</span><span class="p">)</span> 
+        <span class="o">:</span> <span class="n">shards_</span><span class="p">(</span><span class="n">num_shards</span><span class="p">)</span> <span class="p">{}</span>
+    
+    <span class="kt">void</span> <span class="nf">push</span><span class="p">(</span><span class="n">T</span> <span class="n">value</span><span class="p">)</span> <span class="p">{</span>
+        <span class="kt">size_t</span> <span class="n">idx</span> <span class="o">=</span> <span class="n">counter_</span><span class="p">.</span><span class="n">fetch_add</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="n">shards_</span><span class="p">.</span><span class="n">size</span><span class="p">();</span>
+        <span class="n">shards_</span><span class="p">[</span><span class="n">idx</span><span class="p">].</span><span class="n">push</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">value</span><span class="p">));</span>
+    <span class="p">}</span>
+    
+    <span class="n">std</span><span class="o">::</span><span class="n">optional</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">try_pop</span><span class="p">()</span> <span class="p">{</span>
+        <span class="k">for</span> <span class="p">(</span><span class="k">auto</span><span class="o">&amp;</span> <span class="n">shard</span> <span class="o">:</span> <span class="n">shards_</span><span class="p">)</span> <span class="p">{</span>
+            <span class="k">if</span> <span class="p">(</span><span class="k">auto</span> <span class="n">val</span> <span class="o">=</span> <span class="n">shard</span><span class="p">.</span><span class="n">try_pop</span><span class="p">())</span> <span class="p">{</span>
+                <span class="k">return</span> <span class="n">val</span><span class="p">;</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
+        <span class="k">return</span> <span class="n">std</span><span class="o">::</span><span class="n">nullopt</span><span class="p">;</span>
+    <span class="p">}</span>
+<span class="p">};</span>
+</code></pre></div></div>
+
+<p><strong>Strategy 2</strong>: Split head and tail locks</p>
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="nc">T</span><span class="p">&gt;</span>
+<span class="k">class</span> <span class="nc">TwoLockQueue</span> <span class="p">{</span>
+<span class="nl">private:</span>
+    <span class="k">struct</span> <span class="nc">Node</span> <span class="p">{</span>
+        <span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">data</span><span class="p">;</span>
+        <span class="n">std</span><span class="o">::</span><span class="n">unique_ptr</span><span class="o">&lt;</span><span class="n">Node</span><span class="o">&gt;</span> <span class="n">next</span><span class="p">;</span>
+    <span class="p">};</span>
+    
+    <span class="n">std</span><span class="o">::</span><span class="n">mutex</span> <span class="n">head_mutex_</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">unique_ptr</span><span class="o">&lt;</span><span class="n">Node</span><span class="o">&gt;</span> <span class="n">head_</span><span class="p">;</span>
+    
+    <span class="n">std</span><span class="o">::</span><span class="n">mutex</span> <span class="n">tail_mutex_</span><span class="p">;</span>
+    <span class="n">Node</span><span class="o">*</span> <span class="n">tail_</span><span class="p">;</span>
+    
+    <span class="n">Node</span><span class="o">*</span> <span class="nf">get_tail</span><span class="p">()</span> <span class="p">{</span>
+        <span class="n">std</span><span class="o">::</span><span class="n">lock_guard</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&gt;</span> <span class="n">lock</span><span class="p">(</span><span class="n">tail_mutex_</span><span class="p">);</span>
+        <span class="k">return</span> <span class="n">tail_</span><span class="p">;</span>
+    <span class="p">}</span>
+    
+<span class="k">public</span><span class="o">:</span>
+    <span class="n">TwoLockQueue</span><span class="p">()</span> <span class="o">:</span> <span class="n">head_</span><span class="p">(</span><span class="k">new</span> <span class="n">Node</span><span class="p">),</span> <span class="n">tail_</span><span class="p">(</span><span class="n">head_</span><span class="p">.</span><span class="n">get</span><span class="p">())</span> <span class="p">{}</span>
+    
+    <span class="kt">void</span> <span class="nf">push</span><span class="p">(</span><span class="n">T</span> <span class="n">value</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">auto</span> <span class="n">data</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">value</span><span class="p">));</span>
+        <span class="k">auto</span> <span class="n">new_node</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">make_unique</span><span class="o">&lt;</span><span class="n">Node</span><span class="o">&gt;</span><span class="p">();</span>
+        <span class="n">Node</span><span class="o">*</span> <span class="k">const</span> <span class="n">new_tail</span> <span class="o">=</span> <span class="n">new_node</span><span class="p">.</span><span class="n">get</span><span class="p">();</span>
+        
+        <span class="n">std</span><span class="o">::</span><span class="n">lock_guard</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&gt;</span> <span class="n">lock</span><span class="p">(</span><span class="n">tail_mutex_</span><span class="p">);</span>
+        <span class="n">tail_</span><span class="o">-&gt;</span><span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="p">;</span>
+        <span class="n">tail_</span><span class="o">-&gt;</span><span class="n">next</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">new_node</span><span class="p">);</span>
+        <span class="n">tail_</span> <span class="o">=</span> <span class="n">new_tail</span><span class="p">;</span>
+    <span class="p">}</span>
+    
+    <span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">try_pop</span><span class="p">()</span> <span class="p">{</span>
+        <span class="n">std</span><span class="o">::</span><span class="n">lock_guard</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&gt;</span> <span class="n">lock</span><span class="p">(</span><span class="n">head_mutex_</span><span class="p">);</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">head_</span><span class="p">.</span><span class="n">get</span><span class="p">()</span> <span class="o">==</span> <span class="n">get_tail</span><span class="p">())</span> <span class="p">{</span>
+            <span class="k">return</span> <span class="nb">nullptr</span><span class="p">;</span>
+        <span class="p">}</span>
+        <span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">result</span> <span class="o">=</span> <span class="n">head_</span><span class="o">-&gt;</span><span class="n">data</span><span class="p">;</span>
+        <span class="n">head_</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">head_</span><span class="o">-&gt;</span><span class="n">next</span><span class="p">);</span>
+        <span class="k">return</span> <span class="n">result</span><span class="p">;</span>
+    <span class="p">}</span>
+<span class="p">};</span>
+</code></pre></div></div>
+
+<h3 id="2-cache-line-considerations">2. Cache Line Considerations</h3>
+
+<p>Avoid false sharing by padding:</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="nc">T</span><span class="p">&gt;</span>
+<span class="k">class</span> <span class="nc">CacheAlignedQueue</span> <span class="p">{</span>
+<span class="nl">private:</span>
+    <span class="k">alignas</span><span class="p">(</span><span class="mi">64</span><span class="p">)</span> <span class="n">std</span><span class="o">::</span><span class="n">queue</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">queue_</span><span class="p">;</span>
+    <span class="k">alignas</span><span class="p">(</span><span class="mi">64</span><span class="p">)</span> <span class="k">mutable</span> <span class="n">std</span><span class="o">::</span><span class="n">mutex</span> <span class="n">mutex_</span><span class="p">;</span>
+    <span class="k">alignas</span><span class="p">(</span><span class="mi">64</span><span class="p">)</span> <span class="n">std</span><span class="o">::</span><span class="n">condition_variable</span> <span class="n">cv_</span><span class="p">;</span>
+    
+    <span class="c1">// Each member on separate cache line</span>
+<span class="p">};</span>
+</code></pre></div></div>
+
+<h2 id="testing-strategy">Testing Strategy</h2>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include</span> <span class="cpf">&lt;thread&gt;</span><span class="cp">
+#include</span> <span class="cpf">&lt;vector&gt;</span><span class="cp">
+#include</span> <span class="cpf">&lt;cassert&gt;</span><span class="cp">
+</span>
+<span class="kt">void</span> <span class="nf">test_concurrent_push_pop</span><span class="p">()</span> <span class="p">{</span>
+    <span class="n">ThreadSafeQueue</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">queue</span><span class="p">;</span>
+    <span class="k">constexpr</span> <span class="kt">int</span> <span class="n">num_items</span> <span class="o">=</span> <span class="mi">10000</span><span class="p">;</span>
+    <span class="k">constexpr</span> <span class="kt">int</span> <span class="n">num_producers</span> <span class="o">=</span> <span class="mi">4</span><span class="p">;</span>
+    <span class="k">constexpr</span> <span class="kt">int</span> <span class="n">num_consumers</span> <span class="o">=</span> <span class="mi">4</span><span class="p">;</span>
+    
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="kr">thread</span><span class="o">&gt;</span> <span class="n">producers</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="kr">thread</span><span class="o">&gt;</span> <span class="n">consumers</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">atomic</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">sum</span><span class="p">{</span><span class="mi">0</span><span class="p">};</span>
+    
+    <span class="c1">// Start producers</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">num_producers</span><span class="p">;</span> <span class="o">++</span><span class="n">i</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">producers</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">([</span><span class="o">&amp;</span><span class="n">queue</span><span class="p">,</span> <span class="n">i</span><span class="p">]()</span> <span class="p">{</span>
+            <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">j</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">j</span> <span class="o">&lt;</span> <span class="n">num_items</span><span class="p">;</span> <span class="o">++</span><span class="n">j</span><span class="p">)</span> <span class="p">{</span>
+                <span class="n">queue</span><span class="p">.</span><span class="n">push</span><span class="p">(</span><span class="n">i</span> <span class="o">*</span> <span class="n">num_items</span> <span class="o">+</span> <span class="n">j</span><span class="p">);</span>
+            <span class="p">}</span>
+        <span class="p">});</span>
+    <span class="p">}</span>
+    
+    <span class="c1">// Start consumers</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">num_consumers</span><span class="p">;</span> <span class="o">++</span><span class="n">i</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">consumers</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">([</span><span class="o">&amp;</span><span class="n">queue</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">sum</span><span class="p">]()</span> <span class="p">{</span>
+            <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">j</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">j</span> <span class="o">&lt;</span> <span class="n">num_items</span> <span class="o">*</span> <span class="n">num_producers</span> <span class="o">/</span> <span class="n">num_consumers</span><span class="p">;</span> <span class="o">++</span><span class="n">j</span><span class="p">)</span> <span class="p">{</span>
+                <span class="n">sum</span><span class="p">.</span><span class="n">fetch_add</span><span class="p">(</span><span class="n">queue</span><span class="p">.</span><span class="n">pop</span><span class="p">());</span>
+            <span class="p">}</span>
+        <span class="p">});</span>
+    <span class="p">}</span>
+    
+    <span class="c1">// Wait for completion</span>
+    <span class="k">for</span> <span class="p">(</span><span class="k">auto</span><span class="o">&amp;</span> <span class="n">t</span> <span class="o">:</span> <span class="n">producers</span><span class="p">)</span> <span class="n">t</span><span class="p">.</span><span class="n">join</span><span class="p">();</span>
+    <span class="k">for</span> <span class="p">(</span><span class="k">auto</span><span class="o">&amp;</span> <span class="n">t</span> <span class="o">:</span> <span class="n">consumers</span><span class="p">)</span> <span class="n">t</span><span class="p">.</span><span class="n">join</span><span class="p">();</span>
+    
+    <span class="c1">// Verify no data loss</span>
+    <span class="kt">int</span> <span class="n">expected</span> <span class="o">=</span> <span class="n">num_producers</span> <span class="o">*</span> <span class="n">num_items</span> <span class="o">*</span> <span class="p">(</span><span class="n">num_items</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">num_producers</span><span class="p">;</span> <span class="o">++</span><span class="n">i</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">expected</span> <span class="o">+=</span> <span class="n">i</span> <span class="o">*</span> <span class="n">num_items</span> <span class="o">*</span> <span class="n">num_items</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="n">assert</span><span class="p">(</span><span class="n">sum</span><span class="p">.</span><span class="n">load</span><span class="p">()</span> <span class="o">==</span> <span class="n">expected</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<h2 id="common-pitfalls">Common Pitfalls</h2>
+
+<h3 id="1-forgetting-to-notify">1. Forgetting to Notify</h3>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// BAD: No notification</span>
+<span class="kt">void</span> <span class="nf">push</span><span class="p">(</span><span class="n">T</span> <span class="n">value</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">lock_guard</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&gt;</span> <span class="n">lock</span><span class="p">(</span><span class="n">mutex_</span><span class="p">);</span>
+    <span class="n">queue_</span><span class="p">.</span><span class="n">push</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">value</span><span class="p">));</span>
+    <span class="c1">// Missing cv_.notify_one()!</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<h3 id="2-notifying-under-lock">2. Notifying Under Lock</h3>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// SUBOPTIMAL: Notify while holding lock</span>
+<span class="kt">void</span> <span class="nf">push</span><span class="p">(</span><span class="n">T</span> <span class="n">value</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">lock_guard</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&gt;</span> <span class="n">lock</span><span class="p">(</span><span class="n">mutex_</span><span class="p">);</span>
+    <span class="n">queue_</span><span class="p">.</span><span class="n">push</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">value</span><span class="p">));</span>
+    <span class="n">cv_</span><span class="p">.</span><span class="n">notify_one</span><span class="p">();</span>  <span class="c1">// Still holding lock!</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<h3 id="3-lost-wakeups">3. Lost Wakeups</h3>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// BAD: Check before wait without lock</span>
+<span class="k">if</span> <span class="p">(</span><span class="n">queue</span><span class="p">.</span><span class="n">empty</span><span class="p">())</span> <span class="p">{</span>  <span class="c1">// Race: item could be pushed here</span>
+    <span class="n">queue</span><span class="p">.</span><span class="n">pop</span><span class="p">();</span>      <span class="c1">// Will wait forever if queue was empty</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<h3 id="4-spurious-wakeups-not-handled">4. Spurious Wakeups Not Handled</h3>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// BAD: Not using predicate</span>
+<span class="n">cv_</span><span class="p">.</span><span class="n">wait</span><span class="p">(</span><span class="n">lock</span><span class="p">);</span>  <span class="c1">// May wake even if queue still empty</span>
+<span class="n">T</span> <span class="n">value</span> <span class="o">=</span> <span class="n">queue_</span><span class="p">.</span><span class="n">front</span><span class="p">();</span>  <span class="c1">// Undefined behavior!</span>
+</code></pre></div></div>
+
+<h2 id="summary-table">Summary Table</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>Approach</th>
+      <th>Pros</th>
+      <th>Cons</th>
+      <th>Use Case</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Single Mutex</strong></td>
+      <td>Simple, safe, easy to debug</td>
+      <td>High contention under load</td>
+      <td>Low-moderate concurrency</td>
+    </tr>
+    <tr>
+      <td><strong>Two Locks</strong></td>
+      <td>Better scalability</td>
+      <td>More complex</td>
+      <td>Separate producer/consumer threads</td>
+    </tr>
+    <tr>
+      <td><strong>Lock-Free</strong></td>
+      <td>Maximum performance</td>
+      <td>Very complex, hard to debug</td>
+      <td>High contention, specialized scenarios</td>
+    </tr>
+    <tr>
+      <td><strong>Bounded</strong></td>
+      <td>Memory bounded</td>
+      <td>Producers may block</td>
+      <td>Resource-constrained systems</td>
+    </tr>
+    <tr>
+      <td><strong>Sharded</strong></td>
+      <td>Reduced contention</td>
+      <td>Less FIFO guarantee</td>
+      <td>High throughput required</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2 id="best-practices">Best Practices</h2>
+
+<ol>
+  <li><strong>Start simple</strong>: Use mutex-based approach unless profiling shows contention</li>
+  <li><strong>Use RAII locks</strong>: Always prefer <code class="language-plaintext highlighter-rouge">lock_guard</code>/<code class="language-plaintext highlighter-rouge">unique_lock</code> over manual locking</li>
+  <li><strong>Always use predicates with condition variables</strong>: Guard against spurious wakeups</li>
+  <li><strong>Notify outside locks</strong>: Reduces unnecessary blocking</li>
+  <li><strong>Consider move semantics</strong>: Avoid copies for better performance</li>
+  <li><strong>Test thoroughly</strong>: Use ThreadSanitizer and stress tests</li>
+  <li><strong>Document thread-safety guarantees</strong>: Make expectations clear</li>
+  <li><strong>Provide both blocking and non-blocking APIs</strong>: Different use cases need different behavior</li>
+</ol>
+
+<h2 id="related-topics">Related Topics</h2>
+
+<ul>
+  <li><strong>Memory ordering</strong>: Understanding <code class="language-plaintext highlighter-rouge">std::memory_order</code> for lock-free structures</li>
+  <li><strong>Hazard pointers</strong>: Safe memory reclamation in lock-free data structures</li>
+  <li><strong>Producer-consumer pattern</strong>: Design patterns for queue usage</li>
+  <li><strong>Work stealing queues</strong>: Double-ended queues for task scheduling</li>
+  <li><strong>Backpressure handling</strong>: Strategies when producers outpace consumers</li>
+</ul>
+
+                </div>
+            </article>
+        </div>
+    </main>
+
+    
+    <div style="text-align:center; font-size:1.2rem; margin:2rem 0;">
+        <strong>You made it to the end! Thanks for reading ❤️</strong><br>
+        <span style="font-size:0.95rem;">If you liked this, share your thoughts on my <a
+                href="https://www.linkedin.com/in/onkarnm/" target="_blank"
+                style="color:#0A66C2; text-decoration:none; font-weight:500;">LinkedIn page</a> — I'd love to hear from
+            you!</span>
+    </div>
+    
+
+    <!-- Newsletter subscription disabled -->
+    <!-- <div style="display:flex;justify-content:center;margin:0.25rem 0;">
+        <!-- Inline “Subscribe” box -->
+<!-- <span style="white-space:nowrap;">
+    🚀 <strong>Level-up your dev skills—get future articles in your inbox!</strong>
+    <form action="https://formspree.io/f/xrbkplpp" method="POST"
+        style="display:inline-flex;gap:.5rem;vertical-align:middle;margin-left:.75rem">
+        <input type="email" name="email" required placeholder="Enter email"
+            style="padding:.4rem .6rem;border:1px solid #ccc;border-radius:4px;max-width:240px;width:100%">
+        <button type="submit"
+            style="padding:.45rem .9rem;background:#007acc;color:#fff;border:none;border-radius:4px;cursor:pointer">
+            Notify&nbsp;Me&nbsp;📬
+        </button>
+    </form>
+</span> -->
+
+<span class="subscribe-inline" style="display:none;">
+    <strong>🚀 Get new articles straight to your inbox!</strong>
+
+    <form action="https://formspree.io/f/xrbkplpp" method="POST"
+        style="display:inline-flex;gap:.5rem;vertical-align:middle">
+        <input type="email" name="email" required placeholder="Enter email">
+        <!-- <button type="submit">Notify Me 📬</button> -->
+        <button type="submit" style="white-space: nowrap;">Notify Me 📬</button>
+
+    </form>
+</span>
+
+<!-- Stay sharp——get new articles straight to your inbox!
+Level-up your dev skills - get new articles in your inbox! -->
+    </div> -->
+
+    <footer class="site-footer">
+        <div class="wrapper">
+            <div class="footer-col-wrapper">
+                <div class="footer-col">
+                    <p>&copy; 2026 Hack. Crash. Transcend.. All rights reserved.</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+</body>
+
+</html>
