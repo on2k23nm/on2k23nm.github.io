@@ -207,7 +207,7 @@ If the <code class="language-plaintext highlighter-rouge">closed</code> flag is 
 <p>From a correctness and efficiency standpoint, “thread-safe” is not just “put a mutex everywhere”—it means there is a coherent rule: <em>any access to shared state must happen while holding the mutex, and any waiting must re-check the predicate while holding the same mutex.</em> Adhering to this rule ensures your design satisfies two critical requirements:</p>
 
 <ul>
-  <li><strong>Robustness:</strong> This rule eliminates the <strong>Time-of-Check to Time-of-Use (TOCTOU)</strong> race condition by ensuring that the “reality” of the queue cannot change between the moment a thread checks a condition and the moment it executes the operation; it guarantees that internal invariants remain stable and that no thread ever acts on stale or “half-baked” information.</li>
+  <li><strong>Robustness:</strong> This rule eliminates the Time-of-Check to Time-of-Use (TOCTOU) race condition by ensuring that the “reality” of the queue cannot change between the moment a thread checks a condition and the moment it executes the operation; it guarantees that internal invariants remain stable and that no thread ever acts on stale or “half-baked” information.</li>
   <li><strong>Performance:</strong> This pattern is the only way to safely implement <strong>sleeping waits</strong> via condition variables, which allows consumer threads to remain suspended and consume zero CPU cycles until the exact moment work is available; this prevents the system from wasting power and processing time on “busy-waiting” loops that would otherwise throttle high-performance pipelines.</li>
 </ul>
 
