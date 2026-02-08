@@ -1,13 +1,13 @@
 ---
 layout: default
-title: "Design a Multiple Producer Multiple Consumer (MPMC) thread-safe queue in C++"
+title: "Building a Thread-Safe MPMC Queue in C++"
 seo_h1: "How would you design an MPMC thread-safe queue in C++?"
 date: 2026-01-27 00:00:01 +0530
 categories: cpp
 tags: [cpp-core, concurrency, multithreading, thread-safety, data-structures]
 mathjax: false
-description: Comprehensive guide to designing a thread-safe queue with multiple implementation approaches
-published: true
+description: Production-ready thread-safe queue implementation in C++, from mutex-based designs to lock-free optimizations
+published: false
 hidden: false
 ---
 
@@ -75,7 +75,7 @@ Most importantly, there must be **no data races**: *every read/write of shared s
 
 From a correctness and efficiency standpoint, "thread-safe" is not just "put a mutex everywhere"—it means there is a coherent rule: *any access to shared state must happen while holding the mutex, and any waiting must re-check the predicate while holding the same mutex.* Adhering to this rule ensures your design satisfies two critical requirements:
 
-* **Robustness:** This rule eliminates the **Time-of-Check to Time-of-Use (TOCTOU)** race condition by ensuring that the "reality" of the queue cannot change between the moment a thread checks a condition and the moment it executes the operation; it guarantees that internal invariants remain stable and that no thread ever acts on stale or "half-baked" information.
+* **Robustness:** This rule eliminates the Time-of-Check to Time-of-Use (TOCTOU) race condition by ensuring that the "reality" of the queue cannot change between the moment a thread checks a condition and the moment it executes the operation; it guarantees that internal invariants remain stable and that no thread ever acts on stale or "half-baked" information.
 * **Performance:** This pattern is the only way to safely implement **sleeping waits** via condition variables, which allows consumer threads to remain suspended and consume zero CPU cycles until the exact moment work is available; this prevents the system from wasting power and processing time on "busy-waiting" loops that would otherwise throttle high-performance pipelines.
 
 ### Step 5 — Choose the synchronization primitives and explain why

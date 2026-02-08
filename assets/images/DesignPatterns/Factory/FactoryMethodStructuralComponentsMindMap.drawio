@@ -1,0 +1,90 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/28.0.6 Chrome/138.0.7204.100 Electron/37.2.3 Safari/537.36" version="28.0.6">
+  <diagram name="Page-1" id="yTcoc_oTmgBb8WuBU2-7">
+    <mxGraphModel dx="2066" dy="1202" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="ancRxyEkuZ7KzwU2Ih9B-1" value="Factory Method - LiDAR&#xa;Creates objects without naming concrete class" style="ellipse;aspect=fixed;strokeWidth=2;whiteSpace=wrap;fillColor=#fff2cc;strokeColor=#d6b656;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="699" y="323" width="201" height="201" as="geometry" />
+        </mxCell>
+        <mxCell id="ancRxyEkuZ7KzwU2Ih9B-2" value="Product Interface" style="rounded=1;absoluteArcSize=1;arcSize=14;whiteSpace=wrap;strokeWidth=2;fillColor=#fff2cc;strokeColor=#d6b656;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="740.5" y="238.87" width="145" height="49.13" as="geometry" />
+        </mxCell>
+        <mxCell id="ancRxyEkuZ7KzwU2Ih9B-3" value="ILidarSensor&#xa;Common contract used by client" style="rounded=1;absoluteArcSize=1;arcSize=14;whiteSpace=wrap;strokeWidth=2;shadow=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="691.5" y="143.87" width="186" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="ancRxyEkuZ7KzwU2Ih9B-4" value="Concrete Products" style="rounded=1;absoluteArcSize=1;arcSize=14;whiteSpace=wrap;strokeWidth=2;fillColor=#fff2cc;strokeColor=#d6b656;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="957" y="398" width="151" height="37" as="geometry" />
+        </mxCell>
+        <mxCell id="ancRxyEkuZ7KzwU2Ih9B-5" value="VelodyneLIDAR&#xa;Real hardware implementation" style="rounded=1;absoluteArcSize=1;arcSize=14;whiteSpace=wrap;strokeWidth=2;shadow=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="1164" y="377" width="206" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="ancRxyEkuZ7KzwU2Ih9B-6" value="OusterLIDAR&#xa;Real hardware implementation" style="rounded=1;absoluteArcSize=1;arcSize=14;whiteSpace=wrap;strokeWidth=2;shadow=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="268" width="206" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="ancRxyEkuZ7KzwU2Ih9B-7" value="SimulatedLIDAR&#xa;Test or simulation implementation" style="rounded=1;absoluteArcSize=1;arcSize=14;whiteSpace=wrap;strokeWidth=2;shadow=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="1108" y="497" width="213" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="ancRxyEkuZ7KzwU2Ih9B-8" value="Creator" style="rounded=1;absoluteArcSize=1;arcSize=14;whiteSpace=wrap;strokeWidth=2;fillColor=#fff2cc;strokeColor=#d6b656;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="750" y="570" width="100" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="ancRxyEkuZ7KzwU2Ih9B-9" value="LidarFactory&#xa;Declares factory method returning ILidarSensor" style="rounded=1;absoluteArcSize=1;arcSize=14;whiteSpace=wrap;strokeWidth=2;shadow=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="650" y="640" width="202" height="73" as="geometry" />
+        </mxCell>
+        <mxCell id="ancRxyEkuZ7KzwU2Ih9B-10" value="Concrete Creators" style="rounded=1;absoluteArcSize=1;arcSize=14;whiteSpace=wrap;strokeWidth=2;fillColor=#fff2cc;strokeColor=#d6b656;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="491" y="410" width="150" height="37" as="geometry" />
+        </mxCell>
+        <mxCell id="ancRxyEkuZ7KzwU2Ih9B-11" value="VelodyneFactory&#xa;Overrides factory method to create VelodyneLIDAR" style="rounded=1;absoluteArcSize=1;arcSize=14;whiteSpace=wrap;strokeWidth=2;shadow=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="300" y="510" width="216" height="73" as="geometry" />
+        </mxCell>
+        <mxCell id="ancRxyEkuZ7KzwU2Ih9B-12" value="OusterFactory&#xa;Overrides factory method to create OusterLIDAR" style="rounded=1;absoluteArcSize=1;arcSize=14;whiteSpace=wrap;strokeWidth=2;shadow=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="230" y="390" width="204" height="73" as="geometry" />
+        </mxCell>
+        <mxCell id="ancRxyEkuZ7KzwU2Ih9B-13" value="SimulatedFactory&#xa;Overrides factory method to create SimulatedLIDAR" style="rounded=1;absoluteArcSize=1;arcSize=14;whiteSpace=wrap;strokeWidth=2;shadow=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="310" y="259" width="213" height="73" as="geometry" />
+        </mxCell>
+        <mxCell id="ancRxyEkuZ7KzwU2Ih9B-14" style="endArrow=none;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;shadow=1;strokeWidth=2;" edge="1" parent="1" source="ancRxyEkuZ7KzwU2Ih9B-2">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="814.9307035862334" y="286.9979310074242" as="sourcePoint" />
+            <mxPoint x="810" y="320" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ancRxyEkuZ7KzwU2Ih9B-15" style="endArrow=none;rounded=0;shadow=1;strokeWidth=2;" edge="1" parent="1" source="ancRxyEkuZ7KzwU2Ih9B-1" target="ancRxyEkuZ7KzwU2Ih9B-4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ancRxyEkuZ7KzwU2Ih9B-16" style="endArrow=none;rounded=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;shadow=1;strokeWidth=2;" edge="1" parent="1" source="ancRxyEkuZ7KzwU2Ih9B-8" target="ancRxyEkuZ7KzwU2Ih9B-1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="804" y="540" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ancRxyEkuZ7KzwU2Ih9B-17" style="endArrow=none;rounded=0;shadow=1;strokeWidth=2;" edge="1" parent="1" source="ancRxyEkuZ7KzwU2Ih9B-1" target="ancRxyEkuZ7KzwU2Ih9B-10">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ancRxyEkuZ7KzwU2Ih9B-18" style="endArrow=none;rounded=0;shadow=1;strokeWidth=2;" edge="1" parent="1" source="ancRxyEkuZ7KzwU2Ih9B-2" target="ancRxyEkuZ7KzwU2Ih9B-3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ancRxyEkuZ7KzwU2Ih9B-19" style="endArrow=none;rounded=0;shadow=1;strokeWidth=2;fillColor=#f8cecc;strokeColor=#b85450;" edge="1" parent="1" source="ancRxyEkuZ7KzwU2Ih9B-4" target="ancRxyEkuZ7KzwU2Ih9B-5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ancRxyEkuZ7KzwU2Ih9B-20" style="endArrow=none;rounded=0;shadow=1;strokeWidth=2;fillColor=#f8cecc;strokeColor=#b85450;" edge="1" parent="1" source="ancRxyEkuZ7KzwU2Ih9B-4" target="ancRxyEkuZ7KzwU2Ih9B-6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ancRxyEkuZ7KzwU2Ih9B-21" style="endArrow=none;rounded=0;shadow=1;strokeWidth=2;fillColor=#f8cecc;strokeColor=#b85450;" edge="1" parent="1" source="ancRxyEkuZ7KzwU2Ih9B-4" target="ancRxyEkuZ7KzwU2Ih9B-7">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ancRxyEkuZ7KzwU2Ih9B-22" style="endArrow=none;rounded=0;shadow=1;strokeWidth=2;" edge="1" parent="1" source="ancRxyEkuZ7KzwU2Ih9B-8" target="ancRxyEkuZ7KzwU2Ih9B-9">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ancRxyEkuZ7KzwU2Ih9B-23" style="endArrow=none;rounded=0;shadow=1;strokeWidth=2;" edge="1" parent="1" source="ancRxyEkuZ7KzwU2Ih9B-10" target="ancRxyEkuZ7KzwU2Ih9B-11">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ancRxyEkuZ7KzwU2Ih9B-24" style="endArrow=none;rounded=0;shadow=1;strokeWidth=2;" edge="1" parent="1" source="ancRxyEkuZ7KzwU2Ih9B-10" target="ancRxyEkuZ7KzwU2Ih9B-12">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ancRxyEkuZ7KzwU2Ih9B-25" style="endArrow=none;rounded=0;shadow=1;strokeWidth=2;" edge="1" parent="1" source="ancRxyEkuZ7KzwU2Ih9B-10" target="ancRxyEkuZ7KzwU2Ih9B-13">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,152 @@
+---
+layout: default
+hidden: false
+title: "What is Pimpl and how does it help ABI stability and build times?"
+seo_h1: "What is Pimpl and how does it help ABI stability and build times?"
+date: 2026-02-08 00:00:01 +0530
+categories: cpp
+tags: [Design Patterns, Software Architecture, cpp]
+mathjax: true
+description: "Discover how the Pimpl (Pointer to Implementation) idiom in C++ acts as a 'compile firewall' to significantly speed up build times and ensure long-term ABI stability."
+published: true
+placement_prio: 110
+pinned: false
+---
+
+# The idea
+
+**Pimpl = “Pointer to IMPLementation”** (also known as the **Opaque Pointer** idiom).
+
+This pattern is a way to separate a class's interface from its implementation details. It solves a common problem in C++ where changes to a private member would force all users of that class to recompile, even if the public interface didn't change.
+
+The pattern relies on two classes:
+
+1.  **The Public Class (The "Interface")**: Defined in the header (`.h`). It presents the stable API but holds no actual data—only a **pointer to a forward-declared class**. Since the compiler doesn't know the size or content of this pointed-to class, it is treated as an "opaque" handle.
+
+2.  **The Private Class (The "Implementation")**: Defined *only* in the source file (`.cpp`). It holds the messy details—header dependencies (like `<vector>`), member variables, and internal logic. It is completely invisible to the client.
+
+### The "Compile Firewall"
+
+The Pimpl idiom is often referred to as a "**compile firewall**" because it prevents changes in your private implementation from triggering unnecessary recompilations for the client code.
+
+| Scenario | Impact on Compilation |
+| :--- | :--- |
+| **Without Pimpl** | If you add or remove a private member variable from a class in your header file, any other `.cpp` file that includes that header will need to be recompiled. This can dramatically increase build times in large projects. |
+| **With Pimpl** | The public class in the header file never changes. It always just holds a pointer to the implementation. All the internal data and functions are hidden in the `.cpp` file. This means you can add, remove, or change private members of the implementation class all you want, and client code won't need to be recompiled. They only "see" the stable handle class. |
+
+In short, the Pimpl idiom is a powerful technique for **reducing build times** and **protecting your class's internal implementation** from external dependencies.
+
+# UML Structure
+
+<img src="/assets/images/DesignPatterns/PimplIdiom.png" alt="Pimpl Idiom Diagram" style="display:block; margin-left:auto; margin-right:auto; width:70%;" />   
+
+<p align="center"><i><b>Figure:</b> The client code depends only on the public interface (MyClass). The internal state (Impl) is isolated, bridged only by a pointer.</i></p>
+
+# Implementation using std::unique_ptr
+
+The following steps demonstrate how to cleanly implement Pimpl in modern C++. We use `std::unique_ptr` to manage the lifecycle of the hidden implementation automatically.
+
+### 1. The Header File (The Interface)
+The header file acts as a clean facade. It exposes *what* the class can do, but assumes absolutely nothing about *how* it's done or what data it holds. By forward declaring `class Impl`, we tell the compiler "this type exists somewhere," allowing us to declare a `unique_ptr` to it without needing the full definition. This is the key mechanism that breaks the compilation dependency.
+
+```cpp
+// File: MyClass.h
+#pragma once
+#include <memory>
+
+class MyClass {
+public:
+    MyClass();
+    ~MyClass();                  // "The Catch": Must be defined in .cpp (where Impl is complete)
+
+    void doSomething();
+
+private:
+    class Impl;                  // forward declaration (no definition here)
+    std::unique_ptr<Impl> pImpl; // owns Impl
+};
+```
+
+### 2. The Source File (The Implementation)
+This is where the actual logic lives. The `Impl` class is fully defined here, completely hidden from the outside world. Because the definition of `Impl` is restricted to this translation unit, you can change member variables, add helper functions, or include heavy headers (like `<vector>`) here without affecting any code that includes `MyClass.h`.
+
+```cpp
+// File: MyClass.cpp
+#include "MyClass.h"
+#include <vector>
+#include <utility>   // for std::move if needed
+
+// Definition of the hidden implementation.
+class MyClass::Impl {
+public:
+    Impl() = default;
+
+    void internalLogic() {
+        // ... real work here
+    }
+
+private:
+    std::vector<int> internalData;  // hidden data
+};
+
+MyClass::MyClass()
+    : pImpl(std::make_unique<Impl>()) {}
+
+// "The Catch": Destructor must be defined here.
+// Because Impl is complete in this translation unit, unique_ptr can safely generate the deleter.
+MyClass::~MyClass() = default;
+
+void MyClass::doSomething() {
+    pImpl->internalLogic();
+}
+```
+
+### 3. std::unique_ptr and Incomplete Types
+
+While `std::unique_ptr` manages memory automatically, it introduces a subtle requirement when used with forward-declared types: _you must define the destructor of your public class in the source (`.cpp`) file, not the header_.
+
+This is because `std::unique_ptr` needs to generate code to `delete` the managed object. To safely delete an object, the compiler must know its size which requires the type to be complete. In the header file (`MyClass.h`), `class Impl` is only a forward declaration—an incomplete type. If you let the compiler generate the default destructor in the header (or define it inline), it attempts to delete this incomplete type, resulting in a compilation error (typically "deletion of incomplete type").
+
+The solution is to declare the destructor in the header but define it in the implementation file (`MyClass.cpp`). In our code example:
+
+1.  **In `MyClass.h`**, we declare `~MyClass();` without a body. This allows the compilation to proceed without trying to generate the deleter logic yet.
+2.  **In `MyClass.cpp`**, we define `MyClass::~MyClass() = default;` after the full definition of `class Impl`. At this point, the compiler sees the full definition of `Impl`, knows its size, and can successfully generate the code to delete the `unique_ptr`.
+
+# Why it helps ABI stability
+
+### What is ABI?
+
+Think of the **API** (Application Programming Interface) as what you write in your code—the names of classes, functions, and their parameters. The **ABI** is the low-level, machine-code version of that. It's the "binary layout" of your compiled code, including things like:
+* The size of objects in memory.
+* The exact layout and order of member variables.
+* How a `vtable` (virtual function table) is structured.
+
+If you ship a library (`.so` or `.dll`) to your users, their code is compiled against a specific ABI. If you release a new version of your library with a different ABI, all of your users have to recompile their own applications to work with your new library. This is a major headache.
+
+### How Pimpl Provides ABI Stability
+
+The Pimpl Idiom solves this problem by creating a "firewall" between the public class and its implementation details.
+
+1.  **Stable Public Class**: The public class you provide in your header file contains only a single private pointer. This means the size and layout of the public class never change, regardless of what happens in the implementation. It's always the size of a pointer (and maybe a vtable pointer if you have virtual functions).
+
+2.  **Implementation Freedom**: All the private data and functions are hidden away in the separate implementation class, which lives in the `.cpp` file. You are now free to change this implementation as much as you want without affecting the ABI. You can:
+    * Add or remove private member variables.
+    * Reorder private member variables.
+    * Change the internal types or third-party libraries.
+
+As long as the **public API** (the method signatures in the header) remains the same, your new library's ABI will be compatible with the old one. This means your users can simply drop in the new `.so` or `.dll` file without having to recompile their own code.
+
+This is a critical feature for building stable, long-lived libraries.
+
+# Why it speeds up builds
+
+This is a direct benefit of the "compile firewall" concept we discussed earlier. Here's a breakdown of the key points:
+
+| Impact Area | Without Pimpl | With Pimpl |
+| :--- | :--- | :--- |
+| **1. Headers Are Cleaner** | When you include a header file, you are also implicitly including all the headers that the class itself uses for its private members (e.g., `<vector>`, `<regex>`, `<openssl>`, etc.). In a large project, this can create a massive chain of dependencies, where one header change can force thousands of files to be recompiled. | The public header file for your class (`MyClass.h`) only needs to declare the single pointer to the implementation class (`Impl`). It doesn't need to include any of the headers that the `Impl` class uses. All those heavyweight includes are moved to the `.cpp` file. |
+| **2. Reduces "Rebuild Cascades"** | A rebuild cascade occurs when a small change in a header file (like adding or removing a private member) forces a large number of other files to be recompiled. This can make incremental builds very slow. | If you change the private members of `Impl`, you only need to recompile the `.cpp` file. Files that use `MyClass.h` do not need to be recompiled because the header remains unchanged. |
+
+### The Bottom Line
+
+The Pimpl Idiom makes your public headers "thin." This reduces the number of `#include` directives in your header files and makes them less fragile. The result is that when you change your implementation, only the `.cpp` file needs to be recompiled, which dramatically speeds up **incremental builds** and helps keep large projects manageable.
