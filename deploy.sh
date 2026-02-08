@@ -44,7 +44,7 @@ else
     git commit -m "Deploy: $(date +'%Y-%m-%d %H:%M:%S')"
     
     echo "🚀 Pushing to GitHub Pages..."
-    git push -u origin "$GITHUB_PAGES_BRANCH"
+    git push -u --force origin "$GITHUB_PAGES_BRANCH"
     
     echo "✅ Deployment successful!"
     echo "Your site will be available at: https://on2k23nm.github.io"
