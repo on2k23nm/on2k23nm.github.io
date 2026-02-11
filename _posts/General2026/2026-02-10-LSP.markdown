@@ -1,0 +1,308 @@
+---
+layout: default
+hidden: false
+title: "Liskov Substitution Principle (LSP)"
+seo_h1: "Liskov Substitution Principle (LSP)"
+date: 2026-02-10 00:00:03 +0530
+categories: cpp
+mathjax: true
+tags: [cpp-core, design-patterns, solid, lsp]
+description: "Understanding the Liskov Substitution Principle (LSP) and its role in creating robust, substitutable software components, with examples in C++."
+published: true
+placement_prio: 109
+pinned: false
+---
+
+Here I discuss the **Liskov Substitution Principle**. As the name suggests, it is about **substitutability**. The reference for this discussion is taken from the wonderful lecture _[Breaking Dependencies: The SOLID Principles](https://youtu.be/Ntraj80qN2k?si=iOcT6e4pdMoBCwNz&t=1857) by Klaus Iglberger at CppCon 2020_. To explain it, let's start with the original statement by Barbara Liskov, “Data Abstraction and Hierarchy” (1987):
+
+_What is wanted here is something like the following substitution property: If for each object $o_1$ of type $S$ there is an object $o_2$ of type $T$ such that for all programs $P$ defined in terms of $T$, the behavior of $P$ is unchanged when $o_1$ is substituted for $o_2$, then $S$ is a subtype of $T$._, 
+
+This statement is very concrete and very accurate for a mathematician. For everyone else, a simplified form is often sufficient, even though it is nowhere close to being as accurate as the original statement:
+
+_Subtypes must be substitutable for their base types._
+
+Initially, it might seem that this is only about inheritance hierarchies. An example later shows that this is not necessarily just about inheritance hierarchies. Intuitively, it is about **behavioral subtyping**, which is what the simplified “is-a” relationship refers to in practice: there is an expectation on some type, and those expectations should be fulfilled by anything that claims to be a subtype — either a concrete type fulfilling a template parameter’s requirements or a derived class implementing a base class interface.
+
+**Behavioral subtyping** (aka the “is-a” relationship) includes these rules:
+
+| Rule                                                              | Simple definition                                                                                   | Practical example (fixed)                                                                                                                                                    |
+| ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Method arguments must not be narrowed** *(Contravariance of method arguments)* | An override must accept parameters that are the _same type or more general_ than the base method. | Base: `void drive(Vehicle v)`<br>Derived override: `void drive(Vehicle v)` or `void drive(Object o)` - _good_<br>Derived override: `void drive(Sedan s)`- _bad: strengthens what caller must provide_ |
+| **Return types may be narrowed**<br>*(Covariance of return types)*              | An override may return a type that is the _same or more specific_ than the base method.           | Base: `Vehicle* make()`<br>Derived: `Tesla* make()` - _good_*(C++: covariance works for pointers/references to class types)*                                                         |
+| **Preconditions cannot be strengthened**                          | The subtype cannot require *more* from the caller than the base contract.                         | Base accepts any integer. Derived cannot suddenly accept *only positive* integers.                                                                                         |
+| **Postconditions cannot be weakened**                             | The subtype cannot guarantee *less* than what the base contract promises.                         | Base guarantees “file is saved”. Derived cannot say “maybe saved, maybe not”.                                                                                                |
+| **Invariants must be preserved**                                  | Properties that must always hold for the base type must *remain true* for the subtype.            | If base expects width/height to be independently settable, a subtype must not break that (classic Rectangle/Square issue).                                                   |
+
+If these hold, substitutability can work pretty well. 
+
+The Liskov Substitution Principle is ultimately about **behavioral compatibility**. If a type `Derived` is a subtype of `Base`, then code written against `Base` should continue to work correctly when you pass a `Derived`. That only holds when the derived type preserves the **expectations / contract** implied by the base type’s interface.
+
+To internalize this, let's look at a classic textbook example that often leads to a design trap: the relationship between a **Square** and a **Rectangle**. In geometry, we are taught that "a square is a rectangle," which intuitively suggests an inheritance relationship. 
+
+However, when we translate this into software, we must decide which direction the inheritance should go. There are two primary design options to consider:
+
+## Option A: `Rectangle` derives from `Square`
+
+In this design, we begin with a `Square`. A square stores a single dimension (`width`). It exposes a virtual setter `setWidth(double)` and a virtual `getArea()`. The area computation for a square is based on the single side length, so `getArea()` returns `width * width`. (Other functions may exist, but these are the important ones here.)
+
+Then we derive `Rectangle` from `Square`. A rectangle needs one more dimension (`height`), so the derived class introduces a second data member and adds a new setter `setHeight(double)`. Since `getArea()` is virtual, the rectangle can override it and compute the correct rectangle area as `width * height`.
+
+```cpp
+//***** Option A *****
+
+class Square
+{
+public:
+    virtual void setWidth(double);
+    virtual int getArea();
+    // ...
+private:
+    double width;
+};
+
+class Rectangle
+    : public Square
+{
+public:
+    virtual void setHeight(double);
+    // ...
+private:
+    double height;
+};
+```
+
+This looks like a clean “extension”: the derived type adds a new data member and new behavior.
+
+## Option B: `Square` derives from `Rectangle`
+
+In this design, we begin with a `Rectangle`. A rectangle stores two dimensions (`width` and `height`). It has two setters `setWidth(double)` and `setHeight(double)` and an area function `getArea()` implemented as `width * height`. (Again, other functions may exist, but these are what matters here.)
+
+Then we derive `Square` from `Rectangle`. The key tension is that a square has only one side length, but the base class interface allows width and height to be set independently. To preserve the square’s invariant (equal sides), the derived class overrides both virtual setters so that **either setter updates both data members**: calling `setWidth` sets both `width` and `height`, and calling `setHeight` also sets both.
+
+With that, `getArea()` returns the correct square area because `width` and `height` are always equal. Overriding `getArea()` is optional.
+
+```cpp
+//***** Option B *****
+
+class Rectangle
+{
+public:
+    virtual void setWidth(double);
+    virtual void setHeight(double);
+    virtual int getArea();
+    // ...
+private:
+    double width;
+    double height;
+};
+
+class Square
+    : public Rectangle
+{
+    // ...
+};
+```
+
+### Why Option B violates LSP
+
+The base type `Rectangle` comes with an expectation: **width and height can be changed independently**. Client code relying on a rectangle assumes that a call to `setHeight()` changes only the height, and a call to `setWidth()` changes only the width.
+
+LSP says: if `Square` is a subtype of `Rectangle`, then any code that works with a `Rectangle` should still work correctly when you pass a `Square` instead. Concretely, that means whatever “promises” the `Rectangle` interface makes to its callers must remain true for `Square`.
+
+Here, the `Rectangle` interface exposes two independent setters:
+
+```cpp
+virtual void setWidth(double);
+virtual void setHeight(double);
+```
+
+So the *natural contract* (expectation) that client code forms is:
+
+* `setWidth(w)` changes the **width** to `w` (and does not silently change height).
+* `setHeight(h)` changes the **height** to `h` (and does not silently change width).
+* Therefore, after calling one setter, the other dimension should remain what it was.
+
+In short: **Rectangle’s interface suggests independent control of width and height.**
+
+But in the derived type `Square`, that is no longer true: calling either setter changes **both** dimensions. So code that treats a `Square` as a `Rectangle` can observe behavior that violates what is expected from a rectangle (for example, changing one dimension unexpectedly changes the other). This means `Square` does not behave like a `Rectangle` is expected to behave, so substitutability breaks — therefore LSP is violated.
+
+Mapping this back to the formal LSP rules:
+
+| LSP rule                                            | Violated in Option B? | Why (in terms of Option B’s `Rectangle` → `Square`)                                                                                                                                                                                                                                                                    |
+| --------------------------------------------------------------- | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Contravariance of method arguments in a subtype             | **No**                | `Square` overrides `setWidth(double)` and `setHeight(double)` with the **same parameter type** (`double`). No “widening”/contravariant change of argument types happens.                                                                                                                              |
+| Covariance of return types in a subtype                     | **No**                | Return types aren’t changed (`void` setters, `int getArea()`), so there is no covariance issue demonstrated.                                                                                                                                                                                           |
+| Preconditions cannot be strengthened in a subtype           | **No (not shown)**    | The Option B description does not introduce extra requirements like “only call setWidth if …”. The problem shown is not about stronger input requirements; it’s about changed behavior.                                                                                                                                |
+| Postconditions cannot be weakened in a subtype              | **Yes**               | For `Rectangle`, the natural expectation is: `setWidth(w)` changes **only width**, and `setHeight(h)` changes **only height**. In `Square`, those postconditions are weakened/changed because each setter changes **both** width and height, so the base-type guarantee (“other dimension unchanged”) no longer holds. |
+| Invariants of the super type must be preserved in a subtype | **Yes**               | The super type (`Rectangle`) implicitly allows the invariant “width and height are independently settable” (they can differ and can be controlled separately). `Square` replaces that by enforcing `width == height`, so it does not preserve the rectangle’s behavioral invariant/expectation.                        |
+
+
+### Why Option A is not better either
+
+The base type **Square** comes with an expectation: it models a shape with a **single side length**. Client code relying on a `Square` assumes that a call to `setWidth()` sets that one side length, and that `getArea()` computes the area in the “square way” (based on that single width, i.e., `width * width`).
+
+The key point of LSP is substitutability: if `Rectangle` is a subtype of `Square`, then any (client) code that works with a `Square` should still work correctly when you pass a `Rectangle` instead.
+
+LSP says: **if `Rectangle` is a subtype of `Square`, then any (client) code that works with a `Square` should still work correctly when you pass a `Rectangle` instead.**
+
+Concretely, that means:
+
+* Whatever “promises” the `Square` interface makes to its callers/clients must remain true for `Rectangle`.
+* Here, the `Square` interface exposes a single setter and an area computation based on that single dimension:
+
+```cpp
+virtual void setWidth(double);
+virtual int  getArea();
+```
+
+So the natural contract (expectation) that client code forms is:
+
+* `setWidth(w)` changes the square’s side length to `w`.
+* `getArea()` returns an area consistent with a square that has side length `w` (i.e., it behaves like `w * w`).
+* There is no second independent dimension being tracked through the `Square` interface.
+
+In short: **Square’s interface suggests a single-dimension (“one side length”) model.**
+
+But in the derived type **Rectangle**, that is no longer true: a rectangle fundamentally needs a second dimension (`height`). Even if `setWidth(w)` still sets the width, the rectangle also has height, and the correct rectangle area is `width * height`. So `Rectangle` overrides `getArea()` to compute `width * height`.
+
+This creates the same LSP problem as Option B, just with a different twist: code that treats a `Rectangle` as a `Square` can observe behavior that violates what is expected from a square. For example, after calling `setWidth(w)`, calling `getArea()` may depend on an additional dimension (`height`) that the `Square` interface never exposed or allowed the client to control. That means `Rectangle` does not behave like a `Square` is expected to behave, so substitutability breaks — therefore LSP is violated.
+
+Mapping this back to the formal LSP rules:
+
+| LSP rule                                                    | Violated in Option A? | Why (in terms of Option A’s `Square` → `Rectangle`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| ----------------------------------------------------------- | --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Contravariance of method arguments in a subtype             | **No**                | `Rectangle` does not override `Square::setWidth(double)` with a *wider* / contravariant parameter type. The parameter type stays `double` (and `setHeight(double)` is an additional method, not a contravariant override).                                                                                                                                                                                                                                                                                                        |
+| Covariance of return types in a subtype                     | **No**                | Return types aren’t changed (`int getArea()`, `void` setters), so there is no covariance issue demonstrated.                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| Preconditions cannot be strengthened in a subtype           | **No (not shown)**    | The Option A description does not introduce extra call requirements like “only call `setWidth` if …”. The problem shown is not about stronger input requirements; it is about changed behavior/expectations.                                                                                                                                                                                                                                                                                                                      |
+| Postconditions cannot be weakened in a subtype              | **Yes**               | For `Square`, the natural expectation is: after `setWidth(w)`, `getArea()` behaves like a square area based on that single side length (conceptually `w * w`). In `Rectangle`, `getArea()` is overridden to compute `width * height`, so after setting only width via the `Square` interface, the observed area can depend on another dimension (`height`) that the base interface did not expose/control. That means the base-type postcondition (area consistent with the “single side length” model) no longer reliably holds. |
+| Invariants of the super type must be preserved in a subtype | **Yes**               | The super type (`Square`) carries the invariant/meaning “a single side length determines the shape.” `Rectangle` introduces a second independent dimension (`height`), so substituting a `Rectangle` where a `Square` is expected can violate that base-type invariant/expectation.                                                                                                                                                                                                                                               |
+
+### Summary
+
+* **Option B fails** because `Square` cannot honor `Rectangle`’s “independent width/height setters” contract.
+* **Option A fails** because `Rectangle` cannot honor `Square`’s “single side-length semantics” contract (area tied only to width as a square).   
+
+Both options violate LSP, just in different ways.
+
+### Main takeaway
+
+The lesson here is not that inheritance is always wrong. The lesson is that inheritance can be **misleadingly intuitive** (especially when thinking in terms of math relationships), but in software design it depends entirely on the **base type’s contract**. 
+
+**Before inheriting, you must understand what clients of the base type are allowed to assume, and the derived type must preserve those assumptions.**
+
+## `std::copy` through the LSP lens
+
+The Liskov Substitution Principle (LSP) is about **substitutability**. If a piece of code is written assuming some expected type/behavior, then anything you provide in that role must behave as expected. If it does not, the code may break even though it “looks” type-correct.
+
+For templates, this idea appears in a slightly different form. The “base type” is not a class in an inheritance hierarchy. Instead, the “base type” is the behavioral contract (often called a *concept*) that the template parameters are expected to satisfy.
+
+### What `std::copy` assumes
+
+```cpp
+namespace std {
+
+template< typename InputIt, typename OutputIt >
+OutputIt copy( InputIt first, InputIt last, OutputIt dest )
+{
+    for( ; first != last; ++first, ++dest ) {
+        *dest = *first;
+    }
+
+    return dest;
+}
+
+} // namespace std
+```
+
+`std::copy(InputIt first, InputIt last, OutputIt dest)` relies on two expectations:
+
+* `InputIt` adheres to the required concept (behaves like an **input iterator**)
+* `OutputIt` adheres to the required concept (behaves like an **output iterator**)
+
+Here, "required concept" means the set of operations and behaviors that the algorithm expects from the iterator types. These expectations are the contract the algorithm is written against. The algorithm will only work correctly if the types passed in really satisfy those behaviors.
+
+### The "required concept" `std::copy` expects
+
+#### Required concept for `InputIt` (input iterator behavior)
+Inside `std::copy`, the input iterator is used in three essential ways:
+1. **Comparison:** `first != last` - This must tell whether the input range is finished.
+2. **Increment:** `++first` - This must move the iterator forward to the next element.
+3. **Read / dereference:** `*first` - This must produce a readable value (something that can be copied).
+
+So the contract is: you can repeatedly compare, advance, and read elements until `first` reaches `last`.
+
+#### Required concept for `OutputIt` (output iterator behavior)
+The output iterator is also used in two essential ways:
+1. **Write through dereference:** `*dest = value` - This must be valid, meaning `dest` must refer to a writable output position.
+2. **Increment:** `++dest` - This must move to the next output position.
+
+So the contract is: `dest` points to a valid place you can write into, and advancing it produces the next valid place to write.
+
+### What the loop in `std::copy` assumes (combined contract)
+The core of the algorithm is:
+```cpp
+for (; first != last; ++first, ++dest) {
+    *dest = *first;
+}
+```
+From this loop, the algorithm assumes that on each iteration:
+* `first != last` is meaningful,
+* `++first` and `++dest` are valid and move forward,
+* `*first` is readable,
+* `*dest = *first` is writable/assignable.
+
+If any of these expectations are not met, `std::copy` cannot be relied on to work. From an LSP perspective, this is a substitutability failure: a type is being used in a role ("InputIt" or "OutputIt") but does not fulfill the behavioral contract that role requires.
+
+It is crucial to understand that **`std::copy` itself does not violate the contract**—it is written assuming the contracts hold true. Instead, it is the **caller** (the client code) that either adheres to or violates the contract by providing iterators that do or do not meet the required behavior.
+
+Here are concrete examples illustrating this:
+
+#### Positive (caller adheres to the contract)
+
+* `InputIt` contract holds: can compare/increment/read from `src` iterators.
+* `OutputIt` contract holds: `dst.begin()` points to real elements, so `*dest = value` is valid.
+
+```cpp
+std::vector<int> src{1,2,3};
+std::vector<int> dst(src.size());               // caller provides writable output range
+std::copy(src.begin(), src.end(), dst.begin()); // OK
+```
+
+#### Negative (caller breaks the OutputIt contract)
+
+* `OutputIt` contract does **not** hold: `dst.begin()` does not point to a valid writable element because `dst` has size 0.
+* `std::copy` will still try to do `*dest = *first`, but the caller did not provide a valid destination range → invalid use.
+
+```cpp
+std::vector<int> src{1,2,3};
+std::vector<int> dst;                           // caller does NOT provide writable output range
+std::copy(src.begin(), src.end(), dst.begin()); // invalid use
+```
+
+## Takeaway / Guidelines
+
+After examining the Square/Rectangle example and the `std::copy` template example, here are the key guidelines to remember. The central idea behind LSP is not about how similar two types look by data fields, but whether the **behavioral expectations** created by an interface are preserved.
+
+### Guideline 1: Inheritance is about behavior, not about data
+
+Inheritance should be chosen based on _behavioral substitutability_, not because two types happen to share data members. As soon as a base class has a virtual function, that virtual function creates expectations about how objects of that type behave. That is the core point: 
+
+**_inheritance is really about the behavior promised by the base type._**
+
+### Guideline 2: The contract of base types must be adhered to
+
+A base type comes with a contract (expectations). If a derived type claims to be a subtype, then it must fulfill those expectations. If the expectations are not fulfilled, the inheritance relationship can break in surprising and unexpected situations. So, whenever you inherit from a base class, the key check is: 
+
+**_does the derived class still honor what users of the base class assume to be true ?_**
+
+### Guideline 3: In templates, adhere to the required concept
+
+For templated/generic code, the equivalent of "base class contract" is the "required concept". If a template expects a type that behaves like an input iterator or output iterator (as in `copy`), then whatever type you pass must actually behave that way.
+
+So the guideline is:
+
+_**make sure the types you use in templated code adhere to the "required concept" that the algorithm expects**_ 
+
+this plays the same role as fulfilling a base class contract in inheritance.
+
+
