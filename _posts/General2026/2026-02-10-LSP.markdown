@@ -13,7 +13,9 @@ placement_prio: 109
 pinned: false
 ---
 
-Here I discuss the **Liskov Substitution Principle**. As the name suggests, it is about **substitutability**. The reference for this discussion is taken from the wonderful lecture _[Breaking Dependencies: The SOLID Principles](https://youtu.be/Ntraj80qN2k?si=iOcT6e4pdMoBCwNz&t=1857) by Klaus Iglberger at CppCon 2020_. To explain it, let's start with the original statement by Barbara Liskov, “Data Abstraction and Hierarchy” (1987):
+Here I discuss the **Liskov Substitution Principle**. As the name suggests, it is about **substitutability**. The reference for this discussion is taken from the wonderful lecture _[Breaking Dependencies: The SOLID Principles](https://youtu.be/Ntraj80qN2k?si=iOcT6e4pdMoBCwNz&t=1857) by Klaus Iglberger at CppCon 2020_.   
+
+To explain it, let's start with the original statement by Barbara Liskov, “Data Abstraction and Hierarchy” (1987):
 
 _What is wanted here is something like the following substitution property: If for each object $o_1$ of type $S$ there is an object $o_2$ of type $T$ such that for all programs $P$ defined in terms of $T$, the behavior of $P$ is unchanged when $o_1$ is substituted for $o_2$, then $S$ is a subtype of $T$._, 
 
