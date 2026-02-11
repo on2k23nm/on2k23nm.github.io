@@ -54,6 +54,13 @@
     <meta name="google-site-verification" content="H0Tf6h_kdL03qvRv7KtC4i456PObcGwDPCxeiKFoll4" />
 
     {% if page.mathjax %}
+    <script>
+    MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']]
+      }
+    };
+    </script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     {% endif %}
 
