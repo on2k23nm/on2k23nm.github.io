@@ -107,7 +107,7 @@ The Observer Pattern defines a one-to-many dependency between objects. When the 
 
 * **Client**: Connects specific consumers to the `PriceFeed` at runtime. The client is responsible for creating instances of the concrete observers and attaching them to the `PriceFeed`. This allows for flexibility in how the system is configured at runtime, as different observers can be attached or detached based on user interactions or other conditions.
 
-#### **Capture the design visually (UML)**
+### **Capture the design visually (UML)**
 
 ```mermaid
 classDiagram
