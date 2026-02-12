@@ -1,0 +1,30 @@
+/* --- responsive subscribe box --- */
+.subscribe-inline {
+  display: inline-flex;
+  gap: .5rem;
+  align-items: center;
+  flex-wrap: wrap;
+  /* ← lets items wrap on small widths */
+  justify-content: center;
+  /* keeps it centered */
+
+  margin-top: 0.1rem;
+  /* or try 0.25rem if it's still too tall */
+}
+
+.subscribe-inline input[type="email"] {
+  flex: 1 1 220px;
+  /* grows but never smaller than 220 px */
+  min-width: 180px;
+}
+
+/* stack button under input on very narrow screens */
+@media (max-width: 480px) {
+  .subscribe-inline {
+    flex-direction: column;
+  }
+
+  .subscribe-inline button {
+    width: 100%;
+  }
+}

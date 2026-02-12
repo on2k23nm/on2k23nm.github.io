@@ -1,0 +1,861 @@
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.4.1">Jekyll</generator><link href="https://on2k23nm.github.io/feed.xml" rel="self" type="application/atom+xml" /><link href="https://on2k23nm.github.io/" rel="alternate" type="text/html" /><updated>2026-02-12T18:03:44+05:30</updated><id>https://on2k23nm.github.io/feed.xml</id><title type="html">Hack. Crash. Transcend.</title><subtitle>This blog is a collection of my notes and reflections in the pursuit of excellence across Deep Learning, Computer Vision, Mathematics, and Computer Systems.</subtitle><entry><title type="html">Observer Pattern (Case Study): Event Notifications with Pluggable Subscribers</title><link href="https://on2k23nm.github.io/design-patterns/2026/02/11/Design-Patterns-Observer.html" rel="alternate" type="text/html" title="Observer Pattern (Case Study): Event Notifications with Pluggable Subscribers" /><published>2026-02-11T09:00:00+05:30</published><updated>2026-02-11T09:00:00+05:30</updated><id>https://on2k23nm.github.io/design-patterns/2026/02/11/Design-Patterns-Observer</id><content type="html" xml:base="https://on2k23nm.github.io/design-patterns/2026/02/11/Design-Patterns-Observer.html"><![CDATA[<h3 id="problem-statement-stock-price-ticker-with-multiple-consumers"><strong>Problem statement: Stock Price Ticker with Multiple Consumers</strong></h3>
+
+<p>You’re building a small “market data” module, that receives live stock price updates (ticks) and needs to notify various parts of the system in real-time. The consumers include:</p>
+<ol>
+  <li>A UI component that displays the latest price for each stock.</li>
+  <li>An alert engine that triggers rules like “notify me if AAPL crosses $150.”</li>
+  <li>A risk monitor that recalculates exposure based on the latest prices.</li>
+  <li>An audit logger that writes an immutable log entry for every tick.</li>
+</ol>
+
+<p>A PriceFeed receives live ticks: <code class="language-plaintext highlighter-rouge">(symbol, price, timestamp)</code>. Each tick must be broadcast to all active consumers immediately. Consumers can come and go at runtime (e.g., UI opens/closes, alert rules enabled/disabled). The PriceFeed should not need to know about the specific consumers or how many there are.</p>
+
+<p>Multiple independent parts of the system need to react immediately. The PriceFeed <strong>should not be</strong> tightly coupled to any specific consumer. We want a design that allows us to add new consumers without modifying the PriceFeed code.</p>
+
+<p><strong>Input</strong>: A stream of stock price ticks (symbol, price, timestamp).  <br />
+<strong>Output</strong>: Real-time notifications to multiple independent consumers (UI, alerts, risk, logging) whenever a new tick arrives.</p>
+
+<h4 id="the-requirements-can-be-summarized-as">The requirements can be summarized as:</h4>
+
+<ul>
+  <li>When a new tick arrives, all active consumers must be notified with minimal latency.</li>
+  <li>Consumers can come and go, so the system must support dynamic subscription and unsubscription at runtime.</li>
+  <li>The PriceFeed should be decoupled from the consumers, adhering to the Open-Closed Principle. Adding new consumers should not require changes to the PriceFeed code.</li>
+  <li>The design should be efficient and scalable, capable of handling a high volume of ticks without significant performance degradation.</li>
+  <li>UI subscribes when a screen opens, unsubscribes when it closes. This is a common pattern for temporary consumers that only care about updates while active.</li>
+  <li>Alert rules may be enabled/disabled at runtime</li>
+  <li>Logger might be swapped (file vs Kafka) without touching PriceFeed code</li>
+</ul>
+
+<h3 id="naive-approach-direct-coupling"><strong>Naive approach: Direct Coupling</strong></h3>
+
+<p>A first attempt usually looks like this:</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// This is a tightly coupled design and violates the Open-Closed Principle</span>
+<span class="k">class</span> <span class="nc">PriceFeed</span> <span class="p">{</span>
+    <span class="c1">// Direct references to all consumers</span>
+    <span class="n">UiTicker</span><span class="o">*</span> <span class="n">ui</span><span class="p">;</span>
+    <span class="n">AlertEngine</span><span class="o">*</span> <span class="n">alerts</span><span class="p">;</span>
+    <span class="n">RiskMonitor</span><span class="o">*</span> <span class="n">risk</span><span class="p">;</span>
+    <span class="n">Logger</span><span class="o">*</span> <span class="n">logger</span><span class="p">;</span>
+
+<span class="nl">public:</span>
+    <span class="c1">// This method is called whenever a new tick arrives</span>
+    <span class="kt">void</span> <span class="n">onNewTick</span><span class="p">(</span><span class="k">const</span> <span class="n">Tick</span><span class="o">&amp;</span> <span class="n">tick</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">ui</span><span class="o">-&gt;</span><span class="n">update</span><span class="p">(</span><span class="n">tick</span><span class="p">);</span> 
+        <span class="n">alerts</span><span class="o">-&gt;</span><span class="n">on_tick</span><span class="p">(</span><span class="n">tick</span><span class="p">);</span>
+        <span class="n">risk</span><span class="o">-&gt;</span><span class="n">on_tick</span><span class="p">(</span><span class="n">tick</span><span class="p">);</span>
+        <span class="n">logger</span><span class="o">-&gt;</span><span class="n">write</span><span class="p">(</span><span class="n">tick</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="c1">// Methods to set the consumers (not ideal)</span>
+<span class="p">};</span>
+</code></pre></div></div>
+
+<p>Here, the <code class="language-plaintext highlighter-rouge">PriceFeed</code> class has direct references to all the consumers. Whenever a new tick arrives, it explicitly calls each consumer’s update method. This design has several issues:</p>
+<ol>
+  <li><strong>Tight Coupling</strong>: <code class="language-plaintext highlighter-rouge">PriceFeed</code> is now tightly coupled to specific consumer classes. If we want to add a new consumer, we have to modify <code class="language-plaintext highlighter-rouge">PriceFeed</code>, which violates the Open-Closed Principle.</li>
+  <li><strong>Growing Dependency List</strong>: As we add more consumers, <code class="language-plaintext highlighter-rouge">PriceFeed</code> becomes a “god broadcaster” that knows about every consumer in the system.</li>
+  <li><strong>Hard Runtime Behavior</strong>: Managing subscriptions becomes messy. If a UI component opens, we have to remember to set the <code class="language-plaintext highlighter-rouge">ui</code> pointer. If it closes, we have to remember to null it out or risk dereferencing a dangling pointer.</li>
+  <li><strong>Polling Temptation</strong>: To avoid coupling, some might be tempted to have consumers poll <code class="language-plaintext highlighter-rouge">PriceFeed.get_latest()</code>, which wastes CPU and adds latency.</li>
+</ol>
+
+<h4 id="what-we-want-instead">What we want instead</h4>
+<p>A design where:</p>
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">PriceFeed</code> only knows an Observer interface (not UI/Alerts/Risk)</li>
+  <li>Any consumer can attach/detach at runtime</li>
+  <li>On each tick, PriceFeed just says: notifyAll(tick)</li>
+  <li>New consumers can be added without modifying PriceFeed</li>
+</ul>
+
+<h3 id="the-observer-pattern"><strong>The “Observer Pattern”</strong></h3>
+
+<p>The Observer Pattern defines a one-to-many dependency between objects. When the state of one object (the Subject) changes, all its dependents (Observers) are notified and updated automatically. This pattern promotes loose coupling and adheres to the Open-Closed Principle. In our case -</p>
+<ul>
+  <li>The <code class="language-plaintext highlighter-rouge">PriceFeed</code> is the <strong>Subject</strong>. A subject is an object having a state and a list of observers that are interested in changes to that state.</li>
+  <li>Each consumer (UI, AlertEngine, RiskMonitor, Logger) implements the <strong>Observer interface</strong> through which they receive updates from the Subject.</li>
+  <li>The Subject maintains a list of its observers and notifies them of any state changes, usually by calling one of their methods (e.g., <code class="language-plaintext highlighter-rouge">update()</code>).</li>
+</ul>
+
+<h4 id="design-strategy-decouple-the-broadcaster-from-the-consumers"><strong>Design Strategy: Decouple the Broadcaster from the Consumers</strong></h4>
+
+<ul>
+  <li><strong>Freeze the Broadcaster</strong>: <code class="language-plaintext highlighter-rouge">PriceFeed</code> (the Subject) should only know that it has a list of “things that want to listen”. Beyond that, it should not care about the specific types of consumers or how they react to updates. It just needs to know how to notify them.</li>
+  <li><strong>Define a Contract</strong>: Create an <code class="language-plaintext highlighter-rouge">IObserver</code> interface with a single method like <code class="language-plaintext highlighter-rouge">onUpdate(tick)</code>. This <code class="language-plaintext highlighter-rouge">IObserver</code> interface is the contract that all consumers must implement to receive updates. The <code class="language-plaintext highlighter-rouge">PriceFeed</code> will only interact with this interface, not caring about the concrete consumer types.</li>
+  <li><strong>Program to Interface</strong>: <code class="language-plaintext highlighter-rouge">PriceFeed</code> stores a list of <code class="language-plaintext highlighter-rouge">IObserver*</code>. It doesn’t care if the pointer is a UI, a Logger, or a Risk Monitor. All it knows is that it can call <code class="language-plaintext highlighter-rouge">onUpdate(tick)</code> on each observer when a new tick arrives. This allows us to add new consumer types in the future without modifying <code class="language-plaintext highlighter-rouge">PriceFeed</code>. The new consumer just needs to implement the <code class="language-plaintext highlighter-rouge">IObserver</code> interface and register itself with the <code class="language-plaintext highlighter-rouge">PriceFeed</code>.</li>
+  <li><strong>Runtime Management</strong>: Provide <code class="language-plaintext highlighter-rouge">attach()</code> and <code class="language-plaintext highlighter-rouge">detach()</code> methods to manage the listener list dynamically. These methods allow consumers to subscribe and unsubscribe at runtime without affecting the <code class="language-plaintext highlighter-rouge">PriceFeed</code> logic.</li>
+</ul>
+
+<h4 id="components-involved-and-their-responsibilities"><strong>Components involved and their responsibilities</strong></h4>
+
+<ul>
+  <li>
+    <p><strong>Subject Interface <code class="language-plaintext highlighter-rouge">IPriceSubject</code></strong> - Purpose of <code class="language-plaintext highlighter-rouge">IPriceSubject</code> is to define the contract for the Subject, ensuring that any concrete implementation (like <code class="language-plaintext highlighter-rouge">PriceFeed</code>) adheres to the expected behavior of managing observers and notifications. This abstraction allows for flexibility in how the Subject is implemented while maintaining a consistent interface for observers to interact with. It defines the essential methods (e.g., <code class="language-plaintext highlighter-rouge">attach()</code>, <code class="language-plaintext highlighter-rouge">detach()</code>, <code class="language-plaintext highlighter-rouge">notify()</code>) for attaching, detaching, and notifying observers, which are crucial for the Observer Pattern to function effectively. By programming to this interface, we can easily swap out different Subject implementations without affecting the observers, as long as they adhere to the same contract.</p>
+  </li>
+  <li><strong>Subject <code class="language-plaintext highlighter-rouge">PriceFeed</code></strong>: Owns the state (latest tick) and the list of observers. It provides an API for attaching/detaching and triggers the notification loop. It is the “broadcaster” that doesn’t care about who is listening, just that it needs to notify them.
+    <ul>
+      <li>
+        <p>The <code class="language-plaintext highlighter-rouge">onNewTick()</code> method is the entry point for new data, and it simply calls <code class="language-plaintext highlighter-rouge">notify()</code> to broadcast to all observers. <code class="language-plaintext highlighter-rouge">notify()</code> iterates through the list of observers and calls their <code class="language-plaintext highlighter-rouge">onUpdate(tick)</code> method, ensuring that all registered observers receive the latest tick information.</p>
+      </li>
+      <li>
+        <p><code class="language-plaintext highlighter-rouge">attach()</code> and <code class="language-plaintext highlighter-rouge">detach()</code> manage the list of observers, allowing for dynamic subscription.</p>
+      </li>
+    </ul>
+  </li>
+  <li>
+    <p><strong>Observer Interface (IPriceObserver)</strong>: Defines the contract for observers. Any consumer that wants to receive updates must implement this interface. It ensures that all observers have a common method (<code class="language-plaintext highlighter-rouge">onUpdate(tick)</code>) that the Subject can call to notify them of changes. This interface abstracts away the specific implementation details of the observers, allowing the Subject to interact with them in a uniform way. By adhering to this interface, new consumer types can be added without modifying the Subject, as they will simply implement the required method to receive updates.</p>
+  </li>
+  <li>
+    <p><strong>Concrete Observers (UI, AlertEngine, Logger)</strong>: Each consumer implements its own reaction to the price change. For example, the UI might update a display, the AlertEngine might check if certain conditions are met to trigger alerts, and the Logger might write the tick to a file or database. Each observer is responsible for its own logic in response to the updates it receives from the Subject.</p>
+  </li>
+  <li><strong>Client</strong>: Connects specific consumers to the <code class="language-plaintext highlighter-rouge">PriceFeed</code> at runtime. The client is responsible for creating instances of the concrete observers and attaching them to the <code class="language-plaintext highlighter-rouge">PriceFeed</code>. This allows for flexibility in how the system is configured at runtime, as different observers can be attached or detached based on user interactions or other conditions.</li>
+</ul>
+
+<h4 id="capture-the-design-visually-uml"><strong>Capture the design visually (UML)</strong></h4>
+
+<pre><code class="language-mermaid">classDiagram
+direction LR
+
+class IPriceObserver {
+    &lt;&lt;interface&gt;&gt;
+    +onUpdate(tick)
+}
+
+class IPriceSubject {
+    &lt;&lt;interface&gt;&gt;
+    +attach(observer)
+    +detach(observer)
+    +notify(tick)
+}
+
+class PriceFeed {
+    -observers
+    +attach(observer)
+    +detach(observer)
+    +onNewTick(symbol, price)
+}
+
+class UiTickerDisplay {
+    +onUpdate(tick)
+}
+
+class AlertEngine {
+    +onUpdate(tick)
+}
+
+class AuditLogger {
+    +onUpdate(tick)
+}
+
+IPriceSubject &lt;|.. PriceFeed
+PriceFeed ..&gt; IPriceObserver
+IPriceObserver &lt;|.. UiTickerDisplay
+IPriceObserver &lt;|.. AlertEngine
+IPriceObserver &lt;|.. AuditLogger
+
+style IPriceObserver fill:#f2f2f2,stroke:#333,stroke-width:2px
+style IPriceSubject fill:#f2f2f2,stroke:#333,stroke-width:2px
+style PriceFeed fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+style UiTickerDisplay fill:#fff3e0,stroke:#e65100,stroke-width:2px
+style AlertEngine fill:#fff3e0,stroke:#e65100,stroke-width:2px
+style AuditLogger fill:#fff3e0,stroke:#e65100,stroke-width:2px
+</code></pre>
+
+<h3 id="c-implementation"><strong>C++ Implementation</strong></h3>
+
+<p>First, we define the domain model for a stock tick, which includes the symbol and price.</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// Domain Model: The data being observed</span>
+<span class="k">struct</span> <span class="nc">Tick</span> <span class="p">{</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">symbol</span><span class="p">;</span>
+    <span class="kt">double</span> <span class="n">price</span><span class="p">;</span>
+<span class="p">};</span>
+</code></pre></div></div>
+<p>Then, we define the Observer interface, which declares the <code class="language-plaintext highlighter-rouge">onUpdate</code> method that all observers must implement to receive updates from the Subject.</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// Observer Interface (The Contract)</span>
+<span class="k">class</span> <span class="nc">IPriceObserver</span> <span class="p">{</span>
+<span class="nl">public:</span>
+    <span class="k">virtual</span> <span class="o">~</span><span class="n">IPriceObserver</span><span class="p">()</span> <span class="o">=</span> <span class="k">default</span><span class="p">;</span>
+    <span class="k">virtual</span> <span class="kt">void</span> <span class="n">onUpdate</span><span class="p">(</span><span class="k">const</span> <span class="n">Tick</span><span class="o">&amp;</span> <span class="n">tick</span><span class="p">)</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">};</span>
+</code></pre></div></div>
+
+<p>We, then define the Subject interface, which declares methods for attaching, detaching, and notifying observers. This interface allows for different implementations of the Subject while maintaining a consistent way for observers to interact with it.</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// Subject Interface (The Broadcaster)</span>
+<span class="k">class</span> <span class="nc">IPriceSubject</span> <span class="p">{</span>
+<span class="nl">public:</span>
+    <span class="k">virtual</span> <span class="o">~</span><span class="n">IPriceSubject</span><span class="p">()</span> <span class="o">=</span> <span class="k">default</span><span class="p">;</span>
+    <span class="k">virtual</span> <span class="kt">void</span> <span class="n">attach</span><span class="p">(</span><span class="n">IPriceObserver</span><span class="o">*</span> <span class="n">observer</span><span class="p">)</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="k">virtual</span> <span class="kt">void</span> <span class="n">detach</span><span class="p">(</span><span class="n">IPriceObserver</span><span class="o">*</span> <span class="n">observer</span><span class="p">)</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="k">virtual</span> <span class="kt">void</span> <span class="n">notify</span><span class="p">(</span><span class="k">const</span> <span class="n">Tick</span><span class="o">&amp;</span> <span class="n">tick</span><span class="p">)</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">};</span>
+</code></pre></div></div>
+
+<p>We then implement the <code class="language-plaintext highlighter-rouge">PriceFeed</code> class, which is a concrete implementation of the <code class="language-plaintext highlighter-rouge">IPriceSubject</code> interface. It maintains a list of observers and implements the logic for attaching, detaching, and notifying them when a new tick arrives.</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// Concrete Subject</span>
+<span class="k">class</span> <span class="nc">PriceFeed</span> <span class="o">:</span> <span class="k">public</span> <span class="n">IPriceSubject</span> <span class="p">{</span>
+<span class="nl">private:</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">IPriceObserver</span><span class="o">*&gt;</span> <span class="n">observers</span><span class="p">;</span>
+
+<span class="nl">public:</span>
+    <span class="c1">// start receiving ticks from the market data source (simulated here)</span>
+    <span class="kt">void</span> <span class="n">attach</span><span class="p">(</span><span class="n">IPriceObserver</span><span class="o">*</span> <span class="n">observer</span><span class="p">)</span> <span class="k">override</span> <span class="p">{</span>
+        <span class="n">observers</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="n">observer</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="c1">// Detach an observer by removing it from the list, it no longer receives updates</span>
+    <span class="kt">void</span> <span class="nf">detach</span><span class="p">(</span><span class="n">IPriceObserver</span><span class="o">*</span> <span class="n">observer</span><span class="p">)</span> <span class="k">override</span> <span class="p">{</span>
+        <span class="n">observers</span><span class="p">.</span><span class="n">erase</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">remove</span><span class="p">(</span><span class="n">observers</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span> <span class="n">observers</span><span class="p">.</span><span class="n">end</span><span class="p">(),</span> <span class="n">observer</span><span class="p">),</span> <span class="n">observers</span><span class="p">.</span><span class="n">end</span><span class="p">());</span>
+    <span class="p">}</span>
+
+    <span class="c1">// Notify all observers about the new tick</span>
+    <span class="kt">void</span> <span class="nf">notify</span><span class="p">(</span><span class="k">const</span> <span class="n">Tick</span><span class="o">&amp;</span> <span class="n">tick</span><span class="p">)</span> <span class="k">override</span> <span class="p">{</span>
+        <span class="k">for</span> <span class="p">(</span><span class="k">auto</span><span class="o">*</span> <span class="n">obs</span> <span class="o">:</span> <span class="n">observers</span><span class="p">)</span> <span class="n">obs</span><span class="o">-&gt;</span><span class="n">onUpdate</span><span class="p">(</span><span class="n">tick</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="c1">// External event trigger</span>
+    <span class="kt">void</span> <span class="nf">onNewTick</span><span class="p">(</span><span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="o">&amp;</span> <span class="n">symbol</span><span class="p">,</span> <span class="kt">double</span> <span class="n">price</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">Tick</span> <span class="n">tick</span><span class="p">{</span><span class="n">symbol</span><span class="p">,</span> <span class="n">price</span><span class="p">};</span>
+
+        <span class="c1">// Market data arrives here, some processing can be done if needed (e.g., filtering, enrichment)</span>
+
+        <span class="c1">// Notify all observers about the new tick</span>
+        <span class="n">notify</span><span class="p">(</span><span class="n">tick</span><span class="p">);</span>
+    <span class="p">}</span>
+<span class="p">};</span>
+</code></pre></div></div>
+
+<p>Then come the concrete observers, which implement the <code class="language-plaintext highlighter-rouge">IPriceObserver</code> interface. Each observer defines its own logic for handling updates from the <code class="language-plaintext highlighter-rouge">PriceFeed</code>. For example, the <code class="language-plaintext highlighter-rouge">UiTickerDisplay</code> updates the UI, the <code class="language-plaintext highlighter-rouge">AlertEngine</code> checks for alert conditions, and the <code class="language-plaintext highlighter-rouge">AuditLogger</code> logs the tick information.</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// Concrete Observers (The Consumers)</span>
+<span class="k">class</span> <span class="nc">UiTickerDisplay</span> <span class="o">:</span> <span class="k">public</span> <span class="n">IPriceObserver</span> <span class="p">{</span>
+<span class="nl">public:</span>
+    <span class="kt">void</span> <span class="n">onUpdate</span><span class="p">(</span><span class="k">const</span> <span class="n">Tick</span><span class="o">&amp;</span> <span class="n">tick</span><span class="p">)</span> <span class="k">override</span> <span class="p">{</span>
+        <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"[UI Ticker] "</span> <span class="o">&lt;&lt;</span> <span class="n">tick</span><span class="p">.</span><span class="n">symbol</span> <span class="o">&lt;&lt;</span> <span class="s">" is now $"</span> <span class="o">&lt;&lt;</span> <span class="n">tick</span><span class="p">.</span><span class="n">price</span> <span class="o">&lt;&lt;</span> <span class="s">"</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+    <span class="p">}</span>
+<span class="p">};</span>
+
+<span class="k">class</span> <span class="nc">AlertEngine</span> <span class="o">:</span> <span class="k">public</span> <span class="n">IPriceObserver</span> <span class="p">{</span>
+<span class="nl">public:</span>
+    <span class="kt">void</span> <span class="n">onUpdate</span><span class="p">(</span><span class="k">const</span> <span class="n">Tick</span><span class="o">&amp;</span> <span class="n">tick</span><span class="p">)</span> <span class="k">override</span> <span class="p">{</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">tick</span><span class="p">.</span><span class="n">price</span> <span class="o">&gt;</span> <span class="mf">150.0</span><span class="p">)</span> <span class="p">{</span>
+            <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"[Alert] "</span> <span class="o">&lt;&lt;</span> <span class="n">tick</span><span class="p">.</span><span class="n">symbol</span> <span class="o">&lt;&lt;</span> <span class="s">" crossed $150 threshold!</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+<span class="p">};</span>
+
+<span class="k">class</span> <span class="nc">AuditLogger</span> <span class="o">:</span> <span class="k">public</span> <span class="n">IPriceObserver</span> <span class="p">{</span>
+<span class="nl">public:</span>
+    <span class="kt">void</span> <span class="n">onUpdate</span><span class="p">(</span><span class="k">const</span> <span class="n">Tick</span><span class="o">&amp;</span> <span class="n">tick</span><span class="p">)</span> <span class="k">override</span> <span class="p">{</span>
+        <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"[Audit] Logged tick for "</span> <span class="o">&lt;&lt;</span> <span class="n">tick</span><span class="p">.</span><span class="n">symbol</span> <span class="o">&lt;&lt;</span> <span class="s">" at "</span> <span class="o">&lt;&lt;</span> <span class="n">tick</span><span class="p">.</span><span class="n">price</span> <span class="o">&lt;&lt;</span> <span class="s">"</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+    <span class="p">}</span>
+<span class="p">};</span>
+</code></pre></div></div>
+
+<p>Finally, we have the client code that wires everything together. It creates an instance of <code class="language-plaintext highlighter-rouge">PriceFeed</code>, attaches various observers to it, and simulates incoming ticks to demonstrate how the observers react to updates.</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// Client: Wiring it all together</span>
+<span class="kt">int</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
+    <span class="n">PriceFeed</span> <span class="n">nasdaqFeed</span><span class="p">;</span>
+
+    <span class="n">UiTickerDisplay</span> <span class="n">ui</span><span class="p">;</span>
+    <span class="n">AlertEngine</span> <span class="n">alerts</span><span class="p">;</span>
+    <span class="n">AuditLogger</span> <span class="n">logger</span><span class="p">;</span>
+
+    <span class="c1">// Attach consumers at runtime</span>
+    <span class="n">nasdaqFeed</span><span class="p">.</span><span class="n">attach</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ui</span><span class="p">);</span>
+    <span class="n">nasdaqFeed</span><span class="p">.</span><span class="n">attach</span><span class="p">(</span><span class="o">&amp;</span><span class="n">alerts</span><span class="p">);</span>
+    <span class="n">nasdaqFeed</span><span class="p">.</span><span class="n">attach</span><span class="p">(</span><span class="o">&amp;</span><span class="n">logger</span><span class="p">);</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"--- Tick 1 ---</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+    <span class="n">nasdaqFeed</span><span class="p">.</span><span class="n">onNewTick</span><span class="p">(</span><span class="s">"AAPL"</span><span class="p">,</span> <span class="mf">145.20</span><span class="p">);</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"</span><span class="se">\n</span><span class="s">--- Tick 2 (Price spike) ---</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+    <span class="n">nasdaqFeed</span><span class="p">.</span><span class="n">onNewTick</span><span class="p">(</span><span class="s">"AAPL"</span><span class="p">,</span> <span class="mf">152.45</span><span class="p">);</span>
+
+    <span class="c1">// Dynamic detach</span>
+    <span class="n">nasdaqFeed</span><span class="p">.</span><span class="n">detach</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ui</span><span class="p">);</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"</span><span class="se">\n</span><span class="s">--- Tick 3 (UI closed) ---</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+    <span class="n">nasdaqFeed</span><span class="p">.</span><span class="n">onNewTick</span><span class="p">(</span><span class="s">"TSLA"</span><span class="p">,</span> <span class="mf">680.00</span><span class="p">);</span>
+
+    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<h3 id="conclusion"><strong>Conclusion</strong></h3>
+<p>The Observer Pattern allows us to keep the <code class="language-plaintext highlighter-rouge">PriceFeed</code> class decoupled from the specific consumers. The <code class="language-plaintext highlighter-rouge">PriceFeed</code> only knows about the <code class="language-plaintext highlighter-rouge">IPriceObserver</code> interface, and any consumer that implements this interface can subscribe to receive updates. This design adheres to the Open-Closed Principle, as we can add new consumer types without modifying the <code class="language-plaintext highlighter-rouge">PriceFeed</code> code. The dynamic attach/detach functionality also allows for flexible runtime behavior, making it easy to manage which consumers are active at any given time.</p>]]></content><author><name></name></author><category term="design-patterns" /><category term="Design Patterns" /><category term="cpp" /><summary type="html"><![CDATA[C++ Observer Pattern notes and case study: Stock Market Ticker.]]></summary></entry><entry><title type="html">Liskov Substitution Principle (LSP)</title><link href="https://on2k23nm.github.io/cpp/2026/02/10/LSP.html" rel="alternate" type="text/html" title="Liskov Substitution Principle (LSP)" /><published>2026-02-10T00:00:03+05:30</published><updated>2026-02-10T00:00:03+05:30</updated><id>https://on2k23nm.github.io/cpp/2026/02/10/LSP</id><content type="html" xml:base="https://on2k23nm.github.io/cpp/2026/02/10/LSP.html"><![CDATA[<p>Here I discuss the <strong>Liskov Substitution Principle</strong>. As the name suggests, it is about <strong>substitutability</strong>. The reference for this discussion is taken from the wonderful lecture <em><a href="https://youtu.be/Ntraj80qN2k?si=iOcT6e4pdMoBCwNz&amp;t=1857">Breaking Dependencies: The SOLID Principles</a> by Klaus Iglberger at CppCon 2020</em>.</p>
+
+<p>To explain it, let’s start with the original statement by Barbara Liskov, “Data Abstraction and Hierarchy” (1987):</p>
+
+<p><em>What is wanted here is something like the following substitution property: If for each object $o_1$ of type $S$ there is an object $o_2$ of type $T$ such that for all programs $P$ defined in terms of $T$, the behavior of $P$ is unchanged when $o_1$ is substituted for $o_2$, then $S$ is a subtype of $T$.</em>,</p>
+
+<p>This statement is very concrete and very accurate for a mathematician. For everyone else, a simplified form is often sufficient, even though it is nowhere close to being as accurate as the original statement:</p>
+
+<p><em>Subtypes must be substitutable for their base types.</em></p>
+
+<p>Initially, it might seem that this is only about inheritance hierarchies. An example later shows that this is not necessarily just about inheritance hierarchies. Intuitively, it is about <strong>behavioral subtyping</strong>, which is what the simplified “is-a” relationship refers to in practice: there is an expectation on some type, and those expectations should be fulfilled by anything that claims to be a subtype — either a concrete type fulfilling a template parameter’s requirements or a derived class implementing a base class interface.</p>
+
+<p><strong>Behavioral subtyping</strong> (aka the “is-a” relationship) includes these rules:</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Rule</th>
+      <th>Simple definition</th>
+      <th>Practical example (fixed)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Method arguments must not be narrowed</strong> <em>(Contravariance of method arguments)</em></td>
+      <td>An override must accept parameters that are the <em>same type or more general</em> than the base method.</td>
+      <td>Base: <code class="language-plaintext highlighter-rouge">void drive(Vehicle v)</code><br />Derived override: <code class="language-plaintext highlighter-rouge">void drive(Vehicle v)</code> or <code class="language-plaintext highlighter-rouge">void drive(Object o)</code> - <em>good</em><br />Derived override: <code class="language-plaintext highlighter-rouge">void drive(Sedan s)</code>- <em>bad: strengthens what caller must provide</em></td>
+    </tr>
+    <tr>
+      <td><strong>Return types may be narrowed</strong><br /><em>(Covariance of return types)</em></td>
+      <td>An override may return a type that is the <em>same or more specific</em> than the base method.</td>
+      <td>Base: <code class="language-plaintext highlighter-rouge">Vehicle* make()</code><br />Derived: <code class="language-plaintext highlighter-rouge">Tesla* make()</code> - <em>good</em><em>(C++: covariance works for pointers/references to class types)</em></td>
+    </tr>
+    <tr>
+      <td><strong>Preconditions cannot be strengthened</strong></td>
+      <td>The subtype cannot require <em>more</em> from the caller than the base contract.</td>
+      <td>Base accepts any integer. Derived cannot suddenly accept <em>only positive</em> integers.</td>
+    </tr>
+    <tr>
+      <td><strong>Postconditions cannot be weakened</strong></td>
+      <td>The subtype cannot guarantee <em>less</em> than what the base contract promises.</td>
+      <td>Base guarantees “file is saved”. Derived cannot say “maybe saved, maybe not”.</td>
+    </tr>
+    <tr>
+      <td><strong>Invariants must be preserved</strong></td>
+      <td>Properties that must always hold for the base type must <em>remain true</em> for the subtype.</td>
+      <td>If base expects width/height to be independently settable, a subtype must not break that (classic Rectangle/Square issue).</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>If these hold, substitutability can work pretty well.</p>
+
+<p>The Liskov Substitution Principle is ultimately about <strong>behavioral compatibility</strong>. If a type <code class="language-plaintext highlighter-rouge">Derived</code> is a subtype of <code class="language-plaintext highlighter-rouge">Base</code>, then code written against <code class="language-plaintext highlighter-rouge">Base</code> should continue to work correctly when you pass a <code class="language-plaintext highlighter-rouge">Derived</code>. That only holds when the derived type preserves the <strong>expectations / contract</strong> implied by the base type’s interface.</p>
+
+<p>To internalize this, let’s look at a classic textbook example that often leads to a design trap: the relationship between a <strong>Square</strong> and a <strong>Rectangle</strong>. In geometry, we are taught that “a square is a rectangle,” which intuitively suggests an inheritance relationship.</p>
+
+<p>However, when we translate this into software, we must decide which direction the inheritance should go. There are two primary design options to consider:</p>
+
+<h2 id="option-a-rectangle-derives-from-square">Option A: <code class="language-plaintext highlighter-rouge">Rectangle</code> derives from <code class="language-plaintext highlighter-rouge">Square</code></h2>
+
+<p>In this design, we begin with a <code class="language-plaintext highlighter-rouge">Square</code>. A square stores a single dimension (<code class="language-plaintext highlighter-rouge">width</code>). It exposes a virtual setter <code class="language-plaintext highlighter-rouge">setWidth(double)</code> and a virtual <code class="language-plaintext highlighter-rouge">getArea()</code>. The area computation for a square is based on the single side length, so <code class="language-plaintext highlighter-rouge">getArea()</code> returns <code class="language-plaintext highlighter-rouge">width * width</code>. (Other functions may exist, but these are the important ones here.)</p>
+
+<p>Then we derive <code class="language-plaintext highlighter-rouge">Rectangle</code> from <code class="language-plaintext highlighter-rouge">Square</code>. A rectangle needs one more dimension (<code class="language-plaintext highlighter-rouge">height</code>), so the derived class introduces a second data member and adds a new setter <code class="language-plaintext highlighter-rouge">setHeight(double)</code>. Since <code class="language-plaintext highlighter-rouge">getArea()</code> is virtual, the rectangle can override it and compute the correct rectangle area as <code class="language-plaintext highlighter-rouge">width * height</code>.</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">//***** Option A *****</span>
+
+<span class="k">class</span> <span class="nc">Square</span>
+<span class="p">{</span>
+<span class="nl">public:</span>
+    <span class="k">virtual</span> <span class="kt">void</span> <span class="n">setWidth</span><span class="p">(</span><span class="kt">double</span><span class="p">);</span>
+    <span class="k">virtual</span> <span class="kt">int</span> <span class="n">getArea</span><span class="p">();</span>
+    <span class="c1">// ...</span>
+<span class="nl">private:</span>
+    <span class="kt">double</span> <span class="n">width</span><span class="p">;</span>
+<span class="p">};</span>
+
+<span class="k">class</span> <span class="nc">Rectangle</span>
+    <span class="o">:</span> <span class="k">public</span> <span class="n">Square</span>
+<span class="p">{</span>
+<span class="nl">public:</span>
+    <span class="k">virtual</span> <span class="kt">void</span> <span class="n">setHeight</span><span class="p">(</span><span class="kt">double</span><span class="p">);</span>
+    <span class="c1">// ...</span>
+<span class="nl">private:</span>
+    <span class="kt">double</span> <span class="n">height</span><span class="p">;</span>
+<span class="p">};</span>
+</code></pre></div></div>
+
+<p>This looks like a clean “extension”: the derived type adds a new data member and new behavior.</p>
+
+<h2 id="option-b-square-derives-from-rectangle">Option B: <code class="language-plaintext highlighter-rouge">Square</code> derives from <code class="language-plaintext highlighter-rouge">Rectangle</code></h2>
+
+<p>In this design, we begin with a <code class="language-plaintext highlighter-rouge">Rectangle</code>. A rectangle stores two dimensions (<code class="language-plaintext highlighter-rouge">width</code> and <code class="language-plaintext highlighter-rouge">height</code>). It has two setters <code class="language-plaintext highlighter-rouge">setWidth(double)</code> and <code class="language-plaintext highlighter-rouge">setHeight(double)</code> and an area function <code class="language-plaintext highlighter-rouge">getArea()</code> implemented as <code class="language-plaintext highlighter-rouge">width * height</code>. (Again, other functions may exist, but these are what matters here.)</p>
+
+<p>Then we derive <code class="language-plaintext highlighter-rouge">Square</code> from <code class="language-plaintext highlighter-rouge">Rectangle</code>. The key tension is that a square has only one side length, but the base class interface allows width and height to be set independently. To preserve the square’s invariant (equal sides), the derived class overrides both virtual setters so that <strong>either setter updates both data members</strong>: calling <code class="language-plaintext highlighter-rouge">setWidth</code> sets both <code class="language-plaintext highlighter-rouge">width</code> and <code class="language-plaintext highlighter-rouge">height</code>, and calling <code class="language-plaintext highlighter-rouge">setHeight</code> also sets both.</p>
+
+<p>With that, <code class="language-plaintext highlighter-rouge">getArea()</code> returns the correct square area because <code class="language-plaintext highlighter-rouge">width</code> and <code class="language-plaintext highlighter-rouge">height</code> are always equal. Overriding <code class="language-plaintext highlighter-rouge">getArea()</code> is optional.</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">//***** Option B *****</span>
+
+<span class="k">class</span> <span class="nc">Rectangle</span>
+<span class="p">{</span>
+<span class="nl">public:</span>
+    <span class="k">virtual</span> <span class="kt">void</span> <span class="n">setWidth</span><span class="p">(</span><span class="kt">double</span><span class="p">);</span>
+    <span class="k">virtual</span> <span class="kt">void</span> <span class="n">setHeight</span><span class="p">(</span><span class="kt">double</span><span class="p">);</span>
+    <span class="k">virtual</span> <span class="kt">int</span> <span class="n">getArea</span><span class="p">();</span>
+    <span class="c1">// ...</span>
+<span class="nl">private:</span>
+    <span class="kt">double</span> <span class="n">width</span><span class="p">;</span>
+    <span class="kt">double</span> <span class="n">height</span><span class="p">;</span>
+<span class="p">};</span>
+
+<span class="k">class</span> <span class="nc">Square</span>
+    <span class="o">:</span> <span class="k">public</span> <span class="n">Rectangle</span>
+<span class="p">{</span>
+    <span class="c1">// ...</span>
+<span class="p">};</span>
+</code></pre></div></div>
+
+<h3 id="why-option-b-violates-lsp">Why Option B violates LSP</h3>
+
+<p>The base type <code class="language-plaintext highlighter-rouge">Rectangle</code> comes with an expectation: <strong>width and height can be changed independently</strong>. Client code relying on a rectangle assumes that a call to <code class="language-plaintext highlighter-rouge">setHeight()</code> changes only the height, and a call to <code class="language-plaintext highlighter-rouge">setWidth()</code> changes only the width.</p>
+
+<p>LSP says: if <code class="language-plaintext highlighter-rouge">Square</code> is a subtype of <code class="language-plaintext highlighter-rouge">Rectangle</code>, then any code that works with a <code class="language-plaintext highlighter-rouge">Rectangle</code> should still work correctly when you pass a <code class="language-plaintext highlighter-rouge">Square</code> instead. Concretely, that means whatever “promises” the <code class="language-plaintext highlighter-rouge">Rectangle</code> interface makes to its callers must remain true for <code class="language-plaintext highlighter-rouge">Square</code>.</p>
+
+<p>Here, the <code class="language-plaintext highlighter-rouge">Rectangle</code> interface exposes two independent setters:</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">virtual</span> <span class="kt">void</span> <span class="nf">setWidth</span><span class="p">(</span><span class="kt">double</span><span class="p">);</span>
+<span class="k">virtual</span> <span class="kt">void</span> <span class="nf">setHeight</span><span class="p">(</span><span class="kt">double</span><span class="p">);</span>
+</code></pre></div></div>
+
+<p>So the <em>natural contract</em> (expectation) that client code forms is:</p>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">setWidth(w)</code> changes the <strong>width</strong> to <code class="language-plaintext highlighter-rouge">w</code> (and does not silently change height).</li>
+  <li><code class="language-plaintext highlighter-rouge">setHeight(h)</code> changes the <strong>height</strong> to <code class="language-plaintext highlighter-rouge">h</code> (and does not silently change width).</li>
+  <li>Therefore, after calling one setter, the other dimension should remain what it was.</li>
+</ul>
+
+<p>In short: <strong>Rectangle’s interface suggests independent control of width and height.</strong></p>
+
+<p>But in the derived type <code class="language-plaintext highlighter-rouge">Square</code>, that is no longer true: calling either setter changes <strong>both</strong> dimensions. So code that treats a <code class="language-plaintext highlighter-rouge">Square</code> as a <code class="language-plaintext highlighter-rouge">Rectangle</code> can observe behavior that violates what is expected from a rectangle (for example, changing one dimension unexpectedly changes the other). This means <code class="language-plaintext highlighter-rouge">Square</code> does not behave like a <code class="language-plaintext highlighter-rouge">Rectangle</code> is expected to behave, so substitutability breaks — therefore LSP is violated.</p>
+
+<p>Mapping this back to the formal LSP rules:</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>LSP rule</th>
+      <th>Violated in Option B?</th>
+      <th>Why (in terms of Option B’s <code class="language-plaintext highlighter-rouge">Rectangle</code> → <code class="language-plaintext highlighter-rouge">Square</code>)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Contravariance of method arguments in a subtype</td>
+      <td><strong>No</strong></td>
+      <td><code class="language-plaintext highlighter-rouge">Square</code> overrides <code class="language-plaintext highlighter-rouge">setWidth(double)</code> and <code class="language-plaintext highlighter-rouge">setHeight(double)</code> with the <strong>same parameter type</strong> (<code class="language-plaintext highlighter-rouge">double</code>). No “widening”/contravariant change of argument types happens.</td>
+    </tr>
+    <tr>
+      <td>Covariance of return types in a subtype</td>
+      <td><strong>No</strong></td>
+      <td>Return types aren’t changed (<code class="language-plaintext highlighter-rouge">void</code> setters, <code class="language-plaintext highlighter-rouge">int getArea()</code>), so there is no covariance issue demonstrated.</td>
+    </tr>
+    <tr>
+      <td>Preconditions cannot be strengthened in a subtype</td>
+      <td><strong>No (not shown)</strong></td>
+      <td>The Option B description does not introduce extra requirements like “only call setWidth if …”. The problem shown is not about stronger input requirements; it’s about changed behavior.</td>
+    </tr>
+    <tr>
+      <td>Postconditions cannot be weakened in a subtype</td>
+      <td><strong>Yes</strong></td>
+      <td>For <code class="language-plaintext highlighter-rouge">Rectangle</code>, the natural expectation is: <code class="language-plaintext highlighter-rouge">setWidth(w)</code> changes <strong>only width</strong>, and <code class="language-plaintext highlighter-rouge">setHeight(h)</code> changes <strong>only height</strong>. In <code class="language-plaintext highlighter-rouge">Square</code>, those postconditions are weakened/changed because each setter changes <strong>both</strong> width and height, so the base-type guarantee (“other dimension unchanged”) no longer holds.</td>
+    </tr>
+    <tr>
+      <td>Invariants of the super type must be preserved in a subtype</td>
+      <td><strong>Yes</strong></td>
+      <td>The super type (<code class="language-plaintext highlighter-rouge">Rectangle</code>) implicitly allows the invariant “width and height are independently settable” (they can differ and can be controlled separately). <code class="language-plaintext highlighter-rouge">Square</code> replaces that by enforcing <code class="language-plaintext highlighter-rouge">width == height</code>, so it does not preserve the rectangle’s behavioral invariant/expectation.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3 id="why-option-a-is-not-better-either">Why Option A is not better either</h3>
+
+<p>The base type <strong>Square</strong> comes with an expectation: it models a shape with a <strong>single side length</strong>. Client code relying on a <code class="language-plaintext highlighter-rouge">Square</code> assumes that a call to <code class="language-plaintext highlighter-rouge">setWidth()</code> sets that one side length, and that <code class="language-plaintext highlighter-rouge">getArea()</code> computes the area in the “square way” (based on that single width, i.e., <code class="language-plaintext highlighter-rouge">width * width</code>).</p>
+
+<p>The key point of LSP is substitutability: if <code class="language-plaintext highlighter-rouge">Rectangle</code> is a subtype of <code class="language-plaintext highlighter-rouge">Square</code>, then any (client) code that works with a <code class="language-plaintext highlighter-rouge">Square</code> should still work correctly when you pass a <code class="language-plaintext highlighter-rouge">Rectangle</code> instead.</p>
+
+<p>LSP says: <strong>if <code class="language-plaintext highlighter-rouge">Rectangle</code> is a subtype of <code class="language-plaintext highlighter-rouge">Square</code>, then any (client) code that works with a <code class="language-plaintext highlighter-rouge">Square</code> should still work correctly when you pass a <code class="language-plaintext highlighter-rouge">Rectangle</code> instead.</strong></p>
+
+<p>Concretely, that means:</p>
+
+<ul>
+  <li>Whatever “promises” the <code class="language-plaintext highlighter-rouge">Square</code> interface makes to its callers/clients must remain true for <code class="language-plaintext highlighter-rouge">Rectangle</code>.</li>
+  <li>Here, the <code class="language-plaintext highlighter-rouge">Square</code> interface exposes a single setter and an area computation based on that single dimension:</li>
+</ul>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">virtual</span> <span class="kt">void</span> <span class="nf">setWidth</span><span class="p">(</span><span class="kt">double</span><span class="p">);</span>
+<span class="k">virtual</span> <span class="kt">int</span>  <span class="nf">getArea</span><span class="p">();</span>
+</code></pre></div></div>
+
+<p>So the natural contract (expectation) that client code forms is:</p>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">setWidth(w)</code> changes the square’s side length to <code class="language-plaintext highlighter-rouge">w</code>.</li>
+  <li><code class="language-plaintext highlighter-rouge">getArea()</code> returns an area consistent with a square that has side length <code class="language-plaintext highlighter-rouge">w</code> (i.e., it behaves like <code class="language-plaintext highlighter-rouge">w * w</code>).</li>
+  <li>There is no second independent dimension being tracked through the <code class="language-plaintext highlighter-rouge">Square</code> interface.</li>
+</ul>
+
+<p>In short: <strong>Square’s interface suggests a single-dimension (“one side length”) model.</strong></p>
+
+<p>But in the derived type <strong>Rectangle</strong>, that is no longer true: a rectangle fundamentally needs a second dimension (<code class="language-plaintext highlighter-rouge">height</code>). Even if <code class="language-plaintext highlighter-rouge">setWidth(w)</code> still sets the width, the rectangle also has height, and the correct rectangle area is <code class="language-plaintext highlighter-rouge">width * height</code>. So <code class="language-plaintext highlighter-rouge">Rectangle</code> overrides <code class="language-plaintext highlighter-rouge">getArea()</code> to compute <code class="language-plaintext highlighter-rouge">width * height</code>.</p>
+
+<p>This creates the same LSP problem as Option B, just with a different twist: code that treats a <code class="language-plaintext highlighter-rouge">Rectangle</code> as a <code class="language-plaintext highlighter-rouge">Square</code> can observe behavior that violates what is expected from a square. For example, after calling <code class="language-plaintext highlighter-rouge">setWidth(w)</code>, calling <code class="language-plaintext highlighter-rouge">getArea()</code> may depend on an additional dimension (<code class="language-plaintext highlighter-rouge">height</code>) that the <code class="language-plaintext highlighter-rouge">Square</code> interface never exposed or allowed the client to control. That means <code class="language-plaintext highlighter-rouge">Rectangle</code> does not behave like a <code class="language-plaintext highlighter-rouge">Square</code> is expected to behave, so substitutability breaks — therefore LSP is violated.</p>
+
+<p>Mapping this back to the formal LSP rules:</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>LSP rule</th>
+      <th>Violated in Option A?</th>
+      <th>Why (in terms of Option A’s <code class="language-plaintext highlighter-rouge">Square</code> → <code class="language-plaintext highlighter-rouge">Rectangle</code>)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Contravariance of method arguments in a subtype</td>
+      <td><strong>No</strong></td>
+      <td><code class="language-plaintext highlighter-rouge">Rectangle</code> does not override <code class="language-plaintext highlighter-rouge">Square::setWidth(double)</code> with a <em>wider</em> / contravariant parameter type. The parameter type stays <code class="language-plaintext highlighter-rouge">double</code> (and <code class="language-plaintext highlighter-rouge">setHeight(double)</code> is an additional method, not a contravariant override).</td>
+    </tr>
+    <tr>
+      <td>Covariance of return types in a subtype</td>
+      <td><strong>No</strong></td>
+      <td>Return types aren’t changed (<code class="language-plaintext highlighter-rouge">int getArea()</code>, <code class="language-plaintext highlighter-rouge">void</code> setters), so there is no covariance issue demonstrated.</td>
+    </tr>
+    <tr>
+      <td>Preconditions cannot be strengthened in a subtype</td>
+      <td><strong>No (not shown)</strong></td>
+      <td>The Option A description does not introduce extra call requirements like “only call <code class="language-plaintext highlighter-rouge">setWidth</code> if …”. The problem shown is not about stronger input requirements; it is about changed behavior/expectations.</td>
+    </tr>
+    <tr>
+      <td>Postconditions cannot be weakened in a subtype</td>
+      <td><strong>Yes</strong></td>
+      <td>For <code class="language-plaintext highlighter-rouge">Square</code>, the natural expectation is: after <code class="language-plaintext highlighter-rouge">setWidth(w)</code>, <code class="language-plaintext highlighter-rouge">getArea()</code> behaves like a square area based on that single side length (conceptually <code class="language-plaintext highlighter-rouge">w * w</code>). In <code class="language-plaintext highlighter-rouge">Rectangle</code>, <code class="language-plaintext highlighter-rouge">getArea()</code> is overridden to compute <code class="language-plaintext highlighter-rouge">width * height</code>, so after setting only width via the <code class="language-plaintext highlighter-rouge">Square</code> interface, the observed area can depend on another dimension (<code class="language-plaintext highlighter-rouge">height</code>) that the base interface did not expose/control. That means the base-type postcondition (area consistent with the “single side length” model) no longer reliably holds.</td>
+    </tr>
+    <tr>
+      <td>Invariants of the super type must be preserved in a subtype</td>
+      <td><strong>Yes</strong></td>
+      <td>The super type (<code class="language-plaintext highlighter-rouge">Square</code>) carries the invariant/meaning “a single side length determines the shape.” <code class="language-plaintext highlighter-rouge">Rectangle</code> introduces a second independent dimension (<code class="language-plaintext highlighter-rouge">height</code>), so substituting a <code class="language-plaintext highlighter-rouge">Rectangle</code> where a <code class="language-plaintext highlighter-rouge">Square</code> is expected can violate that base-type invariant/expectation.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3 id="summary">Summary</h3>
+
+<ul>
+  <li><strong>Option B fails</strong> because <code class="language-plaintext highlighter-rouge">Square</code> cannot honor <code class="language-plaintext highlighter-rouge">Rectangle</code>’s “independent width/height setters” contract.</li>
+  <li><strong>Option A fails</strong> because <code class="language-plaintext highlighter-rouge">Rectangle</code> cannot honor <code class="language-plaintext highlighter-rouge">Square</code>’s “single side-length semantics” contract (area tied only to width as a square).</li>
+</ul>
+
+<p>Both options violate LSP, just in different ways.</p>
+
+<h3 id="main-takeaway">Main takeaway</h3>
+
+<p>The lesson here is not that inheritance is always wrong. The lesson is that inheritance can be <strong>misleadingly intuitive</strong> (especially when thinking in terms of math relationships), but in software design it depends entirely on the <strong>base type’s contract</strong>.</p>
+
+<p><strong>Before inheriting, you must understand what clients of the base type are allowed to assume, and the derived type must preserve those assumptions.</strong></p>
+
+<h2 id="stdcopy-through-the-lsp-lens"><code class="language-plaintext highlighter-rouge">std::copy</code> through the LSP lens</h2>
+
+<p>The Liskov Substitution Principle (LSP) is about <strong>substitutability</strong>. If a piece of code is written assuming some expected type/behavior, then anything you provide in that role must behave as expected. If it does not, the code may break even though it “looks” type-correct.</p>
+
+<p>For templates, this idea appears in a slightly different form. The “base type” is not a class in an inheritance hierarchy. Instead, the “base type” is the behavioral contract (often called a <em>concept</em>) that the template parameters are expected to satisfy.</p>
+
+<h3 id="what-stdcopy-assumes">What <code class="language-plaintext highlighter-rouge">std::copy</code> assumes</h3>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">namespace</span> <span class="n">std</span> <span class="p">{</span>
+
+<span class="k">template</span><span class="o">&lt;</span> <span class="k">typename</span> <span class="nc">InputIt</span><span class="p">,</span> <span class="k">typename</span> <span class="nc">OutputIt</span> <span class="p">&gt;</span>
+<span class="n">OutputIt</span> <span class="n">copy</span><span class="p">(</span> <span class="n">InputIt</span> <span class="n">first</span><span class="p">,</span> <span class="n">InputIt</span> <span class="n">last</span><span class="p">,</span> <span class="n">OutputIt</span> <span class="n">dest</span> <span class="p">)</span>
+<span class="p">{</span>
+    <span class="k">for</span><span class="p">(</span> <span class="p">;</span> <span class="n">first</span> <span class="o">!=</span> <span class="n">last</span><span class="p">;</span> <span class="o">++</span><span class="n">first</span><span class="p">,</span> <span class="o">++</span><span class="n">dest</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="o">*</span><span class="n">dest</span> <span class="o">=</span> <span class="o">*</span><span class="n">first</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="n">dest</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="p">}</span> <span class="c1">// namespace std</span>
+</code></pre></div></div>
+
+<p><code class="language-plaintext highlighter-rouge">std::copy(InputIt first, InputIt last, OutputIt dest)</code> relies on two expectations:</p>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">InputIt</code> adheres to the required concept (behaves like an <strong>input iterator</strong>)</li>
+  <li><code class="language-plaintext highlighter-rouge">OutputIt</code> adheres to the required concept (behaves like an <strong>output iterator</strong>)</li>
+</ul>
+
+<p>Here, “required concept” means the set of operations and behaviors that the algorithm expects from the iterator types. These expectations are the contract the algorithm is written against. The algorithm will only work correctly if the types passed in really satisfy those behaviors.</p>
+
+<h3 id="the-required-concept-stdcopy-expects">The “required concept” <code class="language-plaintext highlighter-rouge">std::copy</code> expects</h3>
+
+<h4 id="required-concept-for-inputit-input-iterator-behavior">Required concept for <code class="language-plaintext highlighter-rouge">InputIt</code> (input iterator behavior)</h4>
+<p>Inside <code class="language-plaintext highlighter-rouge">std::copy</code>, the input iterator is used in three essential ways:</p>
+<ol>
+  <li><strong>Comparison:</strong> <code class="language-plaintext highlighter-rouge">first != last</code> - This must tell whether the input range is finished.</li>
+  <li><strong>Increment:</strong> <code class="language-plaintext highlighter-rouge">++first</code> - This must move the iterator forward to the next element.</li>
+  <li><strong>Read / dereference:</strong> <code class="language-plaintext highlighter-rouge">*first</code> - This must produce a readable value (something that can be copied).</li>
+</ol>
+
+<p>So the contract is: you can repeatedly compare, advance, and read elements until <code class="language-plaintext highlighter-rouge">first</code> reaches <code class="language-plaintext highlighter-rouge">last</code>.</p>
+
+<h4 id="required-concept-for-outputit-output-iterator-behavior">Required concept for <code class="language-plaintext highlighter-rouge">OutputIt</code> (output iterator behavior)</h4>
+<p>The output iterator is also used in two essential ways:</p>
+<ol>
+  <li><strong>Write through dereference:</strong> <code class="language-plaintext highlighter-rouge">*dest = value</code> - This must be valid, meaning <code class="language-plaintext highlighter-rouge">dest</code> must refer to a writable output position.</li>
+  <li><strong>Increment:</strong> <code class="language-plaintext highlighter-rouge">++dest</code> - This must move to the next output position.</li>
+</ol>
+
+<p>So the contract is: <code class="language-plaintext highlighter-rouge">dest</code> points to a valid place you can write into, and advancing it produces the next valid place to write.</p>
+
+<h3 id="what-the-loop-in-stdcopy-assumes-combined-contract">What the loop in <code class="language-plaintext highlighter-rouge">std::copy</code> assumes (combined contract)</h3>
+<p>The core of the algorithm is:</p>
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">for</span> <span class="p">(;</span> <span class="n">first</span> <span class="o">!=</span> <span class="n">last</span><span class="p">;</span> <span class="o">++</span><span class="n">first</span><span class="p">,</span> <span class="o">++</span><span class="n">dest</span><span class="p">)</span> <span class="p">{</span>
+    <span class="o">*</span><span class="n">dest</span> <span class="o">=</span> <span class="o">*</span><span class="n">first</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+<p>From this loop, the algorithm assumes that on each iteration:</p>
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">first != last</code> is meaningful,</li>
+  <li><code class="language-plaintext highlighter-rouge">++first</code> and <code class="language-plaintext highlighter-rouge">++dest</code> are valid and move forward,</li>
+  <li><code class="language-plaintext highlighter-rouge">*first</code> is readable,</li>
+  <li><code class="language-plaintext highlighter-rouge">*dest = *first</code> is writable/assignable.</li>
+</ul>
+
+<p>If any of these expectations are not met, <code class="language-plaintext highlighter-rouge">std::copy</code> cannot be relied on to work. From an LSP perspective, this is a substitutability failure: a type is being used in a role (“InputIt” or “OutputIt”) but does not fulfill the behavioral contract that role requires.</p>
+
+<p>It is crucial to understand that <strong><code class="language-plaintext highlighter-rouge">std::copy</code> itself does not violate the contract</strong>—it is written assuming the contracts hold true. Instead, it is the <strong>caller</strong> (the client code) that either adheres to or violates the contract by providing iterators that do or do not meet the required behavior.</p>
+
+<p>Here are concrete examples illustrating this:</p>
+
+<h4 id="positive-caller-adheres-to-the-contract">Positive (caller adheres to the contract)</h4>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">InputIt</code> contract holds: can compare/increment/read from <code class="language-plaintext highlighter-rouge">src</code> iterators.</li>
+  <li><code class="language-plaintext highlighter-rouge">OutputIt</code> contract holds: <code class="language-plaintext highlighter-rouge">dst.begin()</code> points to real elements, so <code class="language-plaintext highlighter-rouge">*dest = value</code> is valid.</li>
+</ul>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">src</span><span class="p">{</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">};</span>
+<span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">dst</span><span class="p">(</span><span class="n">src</span><span class="p">.</span><span class="n">size</span><span class="p">());</span>               <span class="c1">// caller provides writable output range</span>
+<span class="n">std</span><span class="o">::</span><span class="n">copy</span><span class="p">(</span><span class="n">src</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span> <span class="n">src</span><span class="p">.</span><span class="n">end</span><span class="p">(),</span> <span class="n">dst</span><span class="p">.</span><span class="n">begin</span><span class="p">());</span> <span class="c1">// OK</span>
+</code></pre></div></div>
+
+<h4 id="negative-caller-breaks-the-outputit-contract">Negative (caller breaks the OutputIt contract)</h4>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">OutputIt</code> contract does <strong>not</strong> hold: <code class="language-plaintext highlighter-rouge">dst.begin()</code> does not point to a valid writable element because <code class="language-plaintext highlighter-rouge">dst</code> has size 0.</li>
+  <li><code class="language-plaintext highlighter-rouge">std::copy</code> will still try to do <code class="language-plaintext highlighter-rouge">*dest = *first</code>, but the caller did not provide a valid destination range → invalid use.</li>
+</ul>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">src</span><span class="p">{</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">};</span>
+<span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">dst</span><span class="p">;</span>                           <span class="c1">// caller does NOT provide writable output range</span>
+<span class="n">std</span><span class="o">::</span><span class="n">copy</span><span class="p">(</span><span class="n">src</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span> <span class="n">src</span><span class="p">.</span><span class="n">end</span><span class="p">(),</span> <span class="n">dst</span><span class="p">.</span><span class="n">begin</span><span class="p">());</span> <span class="c1">// invalid use</span>
+</code></pre></div></div>
+
+<h2 id="takeaway--guidelines">Takeaway / Guidelines</h2>
+
+<p>After examining the Square/Rectangle example and the <code class="language-plaintext highlighter-rouge">std::copy</code> template example, here are the key guidelines to remember. The central idea behind LSP is not about how similar two types look by data fields, but whether the <strong>behavioral expectations</strong> created by an interface are preserved.</p>
+
+<h3 id="guideline-1-inheritance-is-about-behavior-not-about-data">Guideline 1: Inheritance is about behavior, not about data</h3>
+
+<p>Inheritance should be chosen based on <em>behavioral substitutability</em>, not because two types happen to share data members. As soon as a base class has a virtual function, that virtual function creates expectations about how objects of that type behave. That is the core point:</p>
+
+<p><strong><em>inheritance is really about the behavior promised by the base type.</em></strong></p>
+
+<h3 id="guideline-2-the-contract-of-base-types-must-be-adhered-to">Guideline 2: The contract of base types must be adhered to</h3>
+
+<p>A base type comes with a contract (expectations). If a derived type claims to be a subtype, then it must fulfill those expectations. If the expectations are not fulfilled, the inheritance relationship can break in surprising and unexpected situations. So, whenever you inherit from a base class, the key check is:</p>
+
+<p><strong><em>does the derived class still honor what users of the base class assume to be true ?</em></strong></p>
+
+<h3 id="guideline-3-in-templates-adhere-to-the-required-concept">Guideline 3: In templates, adhere to the required concept</h3>
+
+<p>For templated/generic code, the equivalent of “base class contract” is the “required concept”. If a template expects a type that behaves like an input iterator or output iterator (as in <code class="language-plaintext highlighter-rouge">copy</code>), then whatever type you pass must actually behave that way.</p>
+
+<p>So the guideline is:</p>
+
+<p><em><strong>make sure the types you use in templated code adhere to the “required concept” that the algorithm expects</strong></em></p>
+
+<p>this plays the same role as fulfilling a base class contract in inheritance.</p>]]></content><author><name></name></author><category term="cpp" /><category term="cpp-core" /><category term="design-patterns" /><category term="solid" /><category term="lsp" /><summary type="html"><![CDATA[Understanding the Liskov Substitution Principle (LSP) and its role in creating robust, substitutable software components, with examples in C++.]]></summary></entry><entry><title type="html">What is Pimpl and how does it help ABI stability and build times?</title><link href="https://on2k23nm.github.io/cpp/2026/02/08/PImpl.html" rel="alternate" type="text/html" title="What is Pimpl and how does it help ABI stability and build times?" /><published>2026-02-08T00:00:01+05:30</published><updated>2026-02-08T00:00:01+05:30</updated><id>https://on2k23nm.github.io/cpp/2026/02/08/PImpl</id><content type="html" xml:base="https://on2k23nm.github.io/cpp/2026/02/08/PImpl.html"><![CDATA[<h1 id="the-idea">The idea</h1>
+
+<p><strong>Pimpl = “Pointer to IMPLementation”</strong> (also known as the <strong>Opaque Pointer</strong> idiom).</p>
+
+<p>This pattern is a way to separate a class’s interface from its implementation details. It solves a common problem in C++ where changes to a private member would force all users of that class to recompile, even if the public interface didn’t change.</p>
+
+<p>The pattern relies on two classes:</p>
+
+<ol>
+  <li>
+    <p><strong>The Public Class (The “Interface”)</strong>: Defined in the header (<code class="language-plaintext highlighter-rouge">.h</code>). It presents the stable API but holds no actual data—only a <strong>pointer to a forward-declared class</strong>. Since the compiler doesn’t know the size or content of this pointed-to class, it is treated as an “opaque” handle.</p>
+  </li>
+  <li>
+    <p><strong>The Private Class (The “Implementation”)</strong>: Defined <em>only</em> in the source file (<code class="language-plaintext highlighter-rouge">.cpp</code>). It holds the messy details—header dependencies (like <code class="language-plaintext highlighter-rouge">&lt;vector&gt;</code>), member variables, and internal logic. It is completely invisible to the client.</p>
+  </li>
+</ol>
+
+<h3 id="the-compile-firewall">The “Compile Firewall”</h3>
+
+<p>The Pimpl idiom is often referred to as a “<strong>compile firewall</strong>” because it prevents changes in your private implementation from triggering unnecessary recompilations for the client code.</p>
+
+<table>
+  <thead>
+    <tr>
+      <th style="text-align: left">Scenario</th>
+      <th style="text-align: left">Impact on Compilation</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="text-align: left"><strong>Without Pimpl</strong></td>
+      <td style="text-align: left">If you add or remove a private member variable from a class in your header file, any other <code class="language-plaintext highlighter-rouge">.cpp</code> file that includes that header will need to be recompiled. This can dramatically increase build times in large projects.</td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><strong>With Pimpl</strong></td>
+      <td style="text-align: left">The public class in the header file never changes. It always just holds a pointer to the implementation. All the internal data and functions are hidden in the <code class="language-plaintext highlighter-rouge">.cpp</code> file. This means you can add, remove, or change private members of the implementation class all you want, and client code won’t need to be recompiled. They only “see” the stable handle class.</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>In short, the Pimpl idiom is a powerful technique for <strong>reducing build times</strong> and <strong>protecting your class’s internal implementation</strong> from external dependencies.</p>
+
+<h1 id="uml-structure">UML Structure</h1>
+
+<p><img src="/assets/images/DesignPatterns/PimplIdiom.png" alt="Pimpl Idiom Diagram" style="display:block; margin-left:auto; margin-right:auto; width:70%;" /></p>
+
+<p align="center"><i><b>Figure:</b> The client code depends only on the public interface (MyClass). The internal state (Impl) is isolated, bridged only by a pointer.</i></p>
+
+<h1 id="implementation-using-stdunique_ptr">Implementation using std::unique_ptr</h1>
+
+<p>The following steps demonstrate how to cleanly implement Pimpl in modern C++. We use <code class="language-plaintext highlighter-rouge">std::unique_ptr</code> to manage the lifecycle of the hidden implementation automatically.</p>
+
+<h3 id="1-the-header-file-the-interface">1. The Header File (The Interface)</h3>
+<p>The header file acts as a clean facade. It exposes <em>what</em> the class can do, but assumes absolutely nothing about <em>how</em> it’s done or what data it holds. By forward declaring <code class="language-plaintext highlighter-rouge">class Impl</code>, we tell the compiler “this type exists somewhere,” allowing us to declare a <code class="language-plaintext highlighter-rouge">unique_ptr</code> to it without needing the full definition. This is the key mechanism that breaks the compilation dependency.</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// File: MyClass.h</span>
+<span class="cp">#pragma once
+#include</span> <span class="cpf">&lt;memory&gt;</span><span class="cp">
+</span>
+<span class="k">class</span> <span class="nc">MyClass</span> <span class="p">{</span>
+<span class="nl">public:</span>
+    <span class="n">MyClass</span><span class="p">();</span>
+    <span class="o">~</span><span class="n">MyClass</span><span class="p">();</span>                  <span class="c1">// "The Catch": Must be defined in .cpp (where Impl is complete)</span>
+
+    <span class="kt">void</span> <span class="n">doSomething</span><span class="p">();</span>
+
+<span class="nl">private:</span>
+    <span class="k">class</span> <span class="nc">Impl</span><span class="p">;</span>                  <span class="c1">// forward declaration (no definition here)</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">unique_ptr</span><span class="o">&lt;</span><span class="n">Impl</span><span class="o">&gt;</span> <span class="n">pImpl</span><span class="p">;</span> <span class="c1">// owns Impl</span>
+<span class="p">};</span>
+</code></pre></div></div>
+
+<h3 id="2-the-source-file-the-implementation">2. The Source File (The Implementation)</h3>
+<p>This is where the actual logic lives. The <code class="language-plaintext highlighter-rouge">Impl</code> class is fully defined here, completely hidden from the outside world. Because the definition of <code class="language-plaintext highlighter-rouge">Impl</code> is restricted to this translation unit, you can change member variables, add helper functions, or include heavy headers (like <code class="language-plaintext highlighter-rouge">&lt;vector&gt;</code>) here without affecting any code that includes <code class="language-plaintext highlighter-rouge">MyClass.h</code>.</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// File: MyClass.cpp</span>
+<span class="cp">#include</span> <span class="cpf">"MyClass.h"</span><span class="cp">
+#include</span> <span class="cpf">&lt;vector&gt;</span><span class="cp">
+#include</span> <span class="cpf">&lt;utility&gt;</span><span class="c1">   // for std::move if needed</span><span class="cp">
+</span>
+<span class="c1">// Definition of the hidden implementation.</span>
+<span class="k">class</span> <span class="nc">MyClass</span><span class="o">::</span><span class="n">Impl</span> <span class="p">{</span>
+<span class="nl">public:</span>
+    <span class="n">Impl</span><span class="p">()</span> <span class="o">=</span> <span class="k">default</span><span class="p">;</span>
+
+    <span class="kt">void</span> <span class="n">internalLogic</span><span class="p">()</span> <span class="p">{</span>
+        <span class="c1">// ... real work here</span>
+    <span class="p">}</span>
+
+<span class="k">private</span><span class="o">:</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">internalData</span><span class="p">;</span>  <span class="c1">// hidden data</span>
+<span class="p">};</span>
+
+<span class="n">MyClass</span><span class="o">::</span><span class="n">MyClass</span><span class="p">()</span>
+    <span class="o">:</span> <span class="n">pImpl</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">make_unique</span><span class="o">&lt;</span><span class="n">Impl</span><span class="o">&gt;</span><span class="p">())</span> <span class="p">{}</span>
+
+<span class="c1">// "The Catch": Destructor must be defined here.</span>
+<span class="c1">// Because Impl is complete in this translation unit, unique_ptr can safely generate the deleter.</span>
+<span class="n">MyClass</span><span class="o">::~</span><span class="n">MyClass</span><span class="p">()</span> <span class="o">=</span> <span class="k">default</span><span class="p">;</span>
+
+<span class="kt">void</span> <span class="n">MyClass</span><span class="o">::</span><span class="n">doSomething</span><span class="p">()</span> <span class="p">{</span>
+    <span class="n">pImpl</span><span class="o">-&gt;</span><span class="n">internalLogic</span><span class="p">();</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<h3 id="3-stdunique_ptr-and-incomplete-types">3. std::unique_ptr and Incomplete Types</h3>
+
+<p>While <code class="language-plaintext highlighter-rouge">std::unique_ptr</code> manages memory automatically, it introduces a subtle requirement when used with forward-declared types: <em>you must define the destructor of your public class in the source (<code class="language-plaintext highlighter-rouge">.cpp</code>) file, not the header</em>.</p>
+
+<p>This is because <code class="language-plaintext highlighter-rouge">std::unique_ptr</code> needs to generate code to <code class="language-plaintext highlighter-rouge">delete</code> the managed object. To safely delete an object, the compiler must know its size which requires the type to be complete. In the header file (<code class="language-plaintext highlighter-rouge">MyClass.h</code>), <code class="language-plaintext highlighter-rouge">class Impl</code> is only a forward declaration—an incomplete type. If you let the compiler generate the default destructor in the header (or define it inline), it attempts to delete this incomplete type, resulting in a compilation error (typically “deletion of incomplete type”).</p>
+
+<p>The solution is to declare the destructor in the header but define it in the implementation file (<code class="language-plaintext highlighter-rouge">MyClass.cpp</code>). In our code example:</p>
+
+<ol>
+  <li><strong>In <code class="language-plaintext highlighter-rouge">MyClass.h</code></strong>, we declare <code class="language-plaintext highlighter-rouge">~MyClass();</code> without a body. This allows the compilation to proceed without trying to generate the deleter logic yet.</li>
+  <li><strong>In <code class="language-plaintext highlighter-rouge">MyClass.cpp</code></strong>, we define <code class="language-plaintext highlighter-rouge">MyClass::~MyClass() = default;</code> after the full definition of <code class="language-plaintext highlighter-rouge">class Impl</code>. At this point, the compiler sees the full definition of <code class="language-plaintext highlighter-rouge">Impl</code>, knows its size, and can successfully generate the code to delete the <code class="language-plaintext highlighter-rouge">unique_ptr</code>.</li>
+</ol>
+
+<h1 id="why-it-helps-abi-stability">Why it helps ABI stability</h1>
+
+<h3 id="what-is-abi">What is ABI?</h3>
+
+<p>Think of the <strong>API</strong> (Application Programming Interface) as what you write in your code—the names of classes, functions, and their parameters. The <strong>ABI</strong> is the low-level, machine-code version of that. It’s the “binary layout” of your compiled code, including things like:</p>
+<ul>
+  <li>The size of objects in memory.</li>
+  <li>The exact layout and order of member variables.</li>
+  <li>How a <code class="language-plaintext highlighter-rouge">vtable</code> (virtual function table) is structured.</li>
+</ul>
+
+<p>If you ship a library (<code class="language-plaintext highlighter-rouge">.so</code> or <code class="language-plaintext highlighter-rouge">.dll</code>) to your users, their code is compiled against a specific ABI. If you release a new version of your library with a different ABI, all of your users have to recompile their own applications to work with your new library. This is a major headache.</p>
+
+<h3 id="how-pimpl-provides-abi-stability">How Pimpl Provides ABI Stability</h3>
+
+<p>The Pimpl Idiom solves this problem by creating a “firewall” between the public class and its implementation details.</p>
+
+<ol>
+  <li>
+    <p><strong>Stable Public Class</strong>: The public class you provide in your header file contains only a single private pointer. This means the size and layout of the public class never change, regardless of what happens in the implementation. It’s always the size of a pointer (and maybe a vtable pointer if you have virtual functions).</p>
+  </li>
+  <li>
+    <p><strong>Implementation Freedom</strong>: All the private data and functions are hidden away in the separate implementation class, which lives in the <code class="language-plaintext highlighter-rouge">.cpp</code> file. You are now free to change this implementation as much as you want without affecting the ABI. You can:</p>
+    <ul>
+      <li>Add or remove private member variables.</li>
+      <li>Reorder private member variables.</li>
+      <li>Change the internal types or third-party libraries.</li>
+    </ul>
+  </li>
+</ol>
+
+<p>As long as the <strong>public API</strong> (the method signatures in the header) remains the same, your new library’s ABI will be compatible with the old one. This means your users can simply drop in the new <code class="language-plaintext highlighter-rouge">.so</code> or <code class="language-plaintext highlighter-rouge">.dll</code> file without having to recompile their own code.</p>
+
+<p>This is a critical feature for building stable, long-lived libraries.</p>
+
+<h1 id="why-it-speeds-up-builds">Why it speeds up builds</h1>
+
+<p>This is a direct benefit of the “compile firewall” concept we discussed earlier. Here’s a breakdown of the key points:</p>
+
+<table>
+  <thead>
+    <tr>
+      <th style="text-align: left">Impact Area</th>
+      <th style="text-align: left">Without Pimpl</th>
+      <th style="text-align: left">With Pimpl</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="text-align: left"><strong>1. Headers Are Cleaner</strong></td>
+      <td style="text-align: left">When you include a header file, you are also implicitly including all the headers that the class itself uses for its private members (e.g., <code class="language-plaintext highlighter-rouge">&lt;vector&gt;</code>, <code class="language-plaintext highlighter-rouge">&lt;regex&gt;</code>, <code class="language-plaintext highlighter-rouge">&lt;openssl&gt;</code>, etc.). In a large project, this can create a massive chain of dependencies, where one header change can force thousands of files to be recompiled.</td>
+      <td style="text-align: left">The public header file for your class (<code class="language-plaintext highlighter-rouge">MyClass.h</code>) only needs to declare the single pointer to the implementation class (<code class="language-plaintext highlighter-rouge">Impl</code>). It doesn’t need to include any of the headers that the <code class="language-plaintext highlighter-rouge">Impl</code> class uses. All those heavyweight includes are moved to the <code class="language-plaintext highlighter-rouge">.cpp</code> file.</td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><strong>2. Reduces “Rebuild Cascades”</strong></td>
+      <td style="text-align: left">A rebuild cascade occurs when a small change in a header file (like adding or removing a private member) forces a large number of other files to be recompiled. This can make incremental builds very slow.</td>
+      <td style="text-align: left">If you change the private members of <code class="language-plaintext highlighter-rouge">Impl</code>, you only need to recompile the <code class="language-plaintext highlighter-rouge">.cpp</code> file. Files that use <code class="language-plaintext highlighter-rouge">MyClass.h</code> do not need to be recompiled because the header remains unchanged.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3 id="the-bottom-line">The Bottom Line</h3>
+
+<p>The Pimpl Idiom makes your public headers “thin.” This reduces the number of <code class="language-plaintext highlighter-rouge">#include</code> directives in your header files and makes them less fragile. The result is that when you change your implementation, only the <code class="language-plaintext highlighter-rouge">.cpp</code> file needs to be recompiled, which dramatically speeds up <strong>incremental builds</strong> and helps keep large projects manageable.</p>]]></content><author><name></name></author><category term="cpp" /><category term="Design Patterns" /><category term="Software Architecture" /><category term="cpp" /><summary type="html"><![CDATA[Discover how the Pimpl (Pointer to Implementation) idiom in C++ acts as a 'compile firewall' to significantly speed up build times and ensure long-term ABI stability.]]></summary></entry></feed>

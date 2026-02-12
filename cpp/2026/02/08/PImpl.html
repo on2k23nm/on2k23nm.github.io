@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang=" en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>What is Pimpl and how does it help ABI stability and build times?</title>
+    
+    <meta name="description" content="Discover how the Pimpl (Pointer to Implementation) idiom in C++ acts as a &#39;compile firewall&#39; to significantly speed up build times and ensure long-term ABI stability.">
+    
+
+    <link rel="canonical" href="https://on2k23nm.github.io/cpp/2026/02/08/PImpl.html">
+
+    <link rel="shortcut icon" href="/favicon.ico">
+
+    <meta property="og:title" content="What is Pimpl and how does it help ABI stability and build times?">
+    <meta property="og:description" content="Discover how the Pimpl (Pointer to Implementation) idiom in C++ acts as a &#39;compile firewall&#39; to significantly speed up build times and ensure long-term ABI stability.">
+    <meta property="og:url" content="https://on2k23nm.github.io/cpp/2026/02/08/PImpl.html">
+    <meta property="og:site_name" content="Hack. Crash. Transcend."><meta property="og:type" content="article">
+    <meta property="article:published_time" content="2026-02-08T00:00:01+05:30"><meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="What is Pimpl and how does it help ABI stability and build times?">
+    <meta name="twitter:description" content="Discover how the Pimpl (Pointer to Implementation) idiom in C++ acts as a &#39;compile firewall&#39; to significantly speed up build times and ensure long-term ABI stability."><link rel="stylesheet" href="/assets/css/main.css">
+    <link rel="stylesheet" href="/assets/css/subscription.css">
+
+    <!-- Your stylesheet -->
+    <link rel="stylesheet" href="/assets/css/main.css">
+    <link rel="stylesheet" href="/assets/css/subscription.css">
+
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4252008174002764"
+        crossorigin="anonymous"></script>
+
+    <meta name="google-site-verification" content="H0Tf6h_kdL03qvRv7KtC4i456PObcGwDPCxeiKFoll4" />
+
+    
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']]
+            }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    
+
+    
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      
+      "@type": "BlogPosting",
+      "mainEntityOfPage": {
+        "@type": "WebPage",
+        "@id": "https://on2k23nm.github.io/cpp/2026/02/08/PImpl.html"
+      },
+      "headline": "What is Pimpl and how does it help ABI stability and build times?",
+      
+      "datePublished": "2026-02-08T00:00:01+05:30",
+      "dateModified": "2026-02-08T00:00:01+05:30",
+      "author": {
+        "@type": "Person",
+        "name": "Your Name"
+      },
+       "publisher": {
+        "@type": "Organization",
+        "name": "Hack. Crash. Transcend.",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "https://on2k23nm.github.io/assets/images/logo.png"
+        }
+      },
+      "description": "Discover how the Pimpl (Pointer to Implementation) idiom in C++ acts as a &#39;compile firewall&#39; to significantly speed up build times and ensure long-term ABI stability."
+      
+    }
+    </script>
+
+</head>
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-DTMB098MDX"></script>
+<script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag('js', new Date());
+    gtag('config', 'G-DTMB098MDX');
+</script>
+
+<body>
+    <header class="site-header">
+        <div class="wrapper">
+            <a class="site-title" href="/">Hack. Crash. Transcend.</a>
+            <nav class="site-nav">
+  <a class="page-link" href="/">Home</a>
+  <a class="page-link" href="/about/">About</a>
+</nav>
+
+        </div>
+    </header>
+
+    <main class="page-content" aria-label="Content">
+        <div class="wrapper">
+            <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+                <header class="post-header">
+                    <h1 class="post-title" itemprop="name headline">What is Pimpl and how does it help ABI stability and build times?</h1>
+
+                    <p class="post-meta">
+                        <time datetime="2026-02-08T00:00:01+05:30" itemprop="datePublished">
+                            📅 February  8, 2026
+                        </time>
+                        &nbsp;
+                        ⏱️ 8-minute read
+                    </p>
+                </header>
+
+                <!-- 
+                <div class="post-tags">
+                    
+                    <span class="tag">Design Patterns</span>
+                    
+                    <span class="tag">Software Architecture</span>
+                    
+                    <span class="tag">cpp</span>
+                    
+                </div>
+                 -->
+                
+                <div class="post-tags">
+                    <a class="tag" href="/tags/design-patterns">Design Patterns</a>
+                    <a class="tag" href="/tags/software-architecture">Software Architecture</a>
+                    <a class="tag" href="/tags/cpp">cpp</a>
+                    
+                </div>
+                
+                <div class="post-content" itemprop="articleBody">
+                    <h1 id="the-idea">The idea</h1>
+
+<p><strong>Pimpl = “Pointer to IMPLementation”</strong> (also known as the <strong>Opaque Pointer</strong> idiom).</p>
+
+<p>This pattern is a way to separate a class’s interface from its implementation details. It solves a common problem in C++ where changes to a private member would force all users of that class to recompile, even if the public interface didn’t change.</p>
+
+<p>The pattern relies on two classes:</p>
+
+<ol>
+  <li>
+    <p><strong>The Public Class (The “Interface”)</strong>: Defined in the header (<code class="language-plaintext highlighter-rouge">.h</code>). It presents the stable API but holds no actual data—only a <strong>pointer to a forward-declared class</strong>. Since the compiler doesn’t know the size or content of this pointed-to class, it is treated as an “opaque” handle.</p>
+  </li>
+  <li>
+    <p><strong>The Private Class (The “Implementation”)</strong>: Defined <em>only</em> in the source file (<code class="language-plaintext highlighter-rouge">.cpp</code>). It holds the messy details—header dependencies (like <code class="language-plaintext highlighter-rouge">&lt;vector&gt;</code>), member variables, and internal logic. It is completely invisible to the client.</p>
+  </li>
+</ol>
+
+<h3 id="the-compile-firewall">The “Compile Firewall”</h3>
+
+<p>The Pimpl idiom is often referred to as a “<strong>compile firewall</strong>” because it prevents changes in your private implementation from triggering unnecessary recompilations for the client code.</p>
+
+<table>
+  <thead>
+    <tr>
+      <th style="text-align: left">Scenario</th>
+      <th style="text-align: left">Impact on Compilation</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="text-align: left"><strong>Without Pimpl</strong></td>
+      <td style="text-align: left">If you add or remove a private member variable from a class in your header file, any other <code class="language-plaintext highlighter-rouge">.cpp</code> file that includes that header will need to be recompiled. This can dramatically increase build times in large projects.</td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><strong>With Pimpl</strong></td>
+      <td style="text-align: left">The public class in the header file never changes. It always just holds a pointer to the implementation. All the internal data and functions are hidden in the <code class="language-plaintext highlighter-rouge">.cpp</code> file. This means you can add, remove, or change private members of the implementation class all you want, and client code won’t need to be recompiled. They only “see” the stable handle class.</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>In short, the Pimpl idiom is a powerful technique for <strong>reducing build times</strong> and <strong>protecting your class’s internal implementation</strong> from external dependencies.</p>
+
+<h1 id="uml-structure">UML Structure</h1>
+
+<p><img src="/assets/images/DesignPatterns/PimplIdiom.png" alt="Pimpl Idiom Diagram" style="display:block; margin-left:auto; margin-right:auto; width:70%;" /></p>
+
+<p align="center"><i><b>Figure:</b> The client code depends only on the public interface (MyClass). The internal state (Impl) is isolated, bridged only by a pointer.</i></p>
+
+<h1 id="implementation-using-stdunique_ptr">Implementation using std::unique_ptr</h1>
+
+<p>The following steps demonstrate how to cleanly implement Pimpl in modern C++. We use <code class="language-plaintext highlighter-rouge">std::unique_ptr</code> to manage the lifecycle of the hidden implementation automatically.</p>
+
+<h3 id="1-the-header-file-the-interface">1. The Header File (The Interface)</h3>
+<p>The header file acts as a clean facade. It exposes <em>what</em> the class can do, but assumes absolutely nothing about <em>how</em> it’s done or what data it holds. By forward declaring <code class="language-plaintext highlighter-rouge">class Impl</code>, we tell the compiler “this type exists somewhere,” allowing us to declare a <code class="language-plaintext highlighter-rouge">unique_ptr</code> to it without needing the full definition. This is the key mechanism that breaks the compilation dependency.</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// File: MyClass.h</span>
+<span class="cp">#pragma once
+#include</span> <span class="cpf">&lt;memory&gt;</span><span class="cp">
+</span>
+<span class="k">class</span> <span class="nc">MyClass</span> <span class="p">{</span>
+<span class="nl">public:</span>
+    <span class="n">MyClass</span><span class="p">();</span>
+    <span class="o">~</span><span class="n">MyClass</span><span class="p">();</span>                  <span class="c1">// "The Catch": Must be defined in .cpp (where Impl is complete)</span>
+
+    <span class="kt">void</span> <span class="n">doSomething</span><span class="p">();</span>
+
+<span class="nl">private:</span>
+    <span class="k">class</span> <span class="nc">Impl</span><span class="p">;</span>                  <span class="c1">// forward declaration (no definition here)</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">unique_ptr</span><span class="o">&lt;</span><span class="n">Impl</span><span class="o">&gt;</span> <span class="n">pImpl</span><span class="p">;</span> <span class="c1">// owns Impl</span>
+<span class="p">};</span>
+</code></pre></div></div>
+
+<h3 id="2-the-source-file-the-implementation">2. The Source File (The Implementation)</h3>
+<p>This is where the actual logic lives. The <code class="language-plaintext highlighter-rouge">Impl</code> class is fully defined here, completely hidden from the outside world. Because the definition of <code class="language-plaintext highlighter-rouge">Impl</code> is restricted to this translation unit, you can change member variables, add helper functions, or include heavy headers (like <code class="language-plaintext highlighter-rouge">&lt;vector&gt;</code>) here without affecting any code that includes <code class="language-plaintext highlighter-rouge">MyClass.h</code>.</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// File: MyClass.cpp</span>
+<span class="cp">#include</span> <span class="cpf">"MyClass.h"</span><span class="cp">
+#include</span> <span class="cpf">&lt;vector&gt;</span><span class="cp">
+#include</span> <span class="cpf">&lt;utility&gt;</span><span class="c1">   // for std::move if needed</span><span class="cp">
+</span>
+<span class="c1">// Definition of the hidden implementation.</span>
+<span class="k">class</span> <span class="nc">MyClass</span><span class="o">::</span><span class="n">Impl</span> <span class="p">{</span>
+<span class="nl">public:</span>
+    <span class="n">Impl</span><span class="p">()</span> <span class="o">=</span> <span class="k">default</span><span class="p">;</span>
+
+    <span class="kt">void</span> <span class="n">internalLogic</span><span class="p">()</span> <span class="p">{</span>
+        <span class="c1">// ... real work here</span>
+    <span class="p">}</span>
+
+<span class="k">private</span><span class="o">:</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">internalData</span><span class="p">;</span>  <span class="c1">// hidden data</span>
+<span class="p">};</span>
+
+<span class="n">MyClass</span><span class="o">::</span><span class="n">MyClass</span><span class="p">()</span>
+    <span class="o">:</span> <span class="n">pImpl</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">make_unique</span><span class="o">&lt;</span><span class="n">Impl</span><span class="o">&gt;</span><span class="p">())</span> <span class="p">{}</span>
+
+<span class="c1">// "The Catch": Destructor must be defined here.</span>
+<span class="c1">// Because Impl is complete in this translation unit, unique_ptr can safely generate the deleter.</span>
+<span class="n">MyClass</span><span class="o">::~</span><span class="n">MyClass</span><span class="p">()</span> <span class="o">=</span> <span class="k">default</span><span class="p">;</span>
+
+<span class="kt">void</span> <span class="n">MyClass</span><span class="o">::</span><span class="n">doSomething</span><span class="p">()</span> <span class="p">{</span>
+    <span class="n">pImpl</span><span class="o">-&gt;</span><span class="n">internalLogic</span><span class="p">();</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<h3 id="3-stdunique_ptr-and-incomplete-types">3. std::unique_ptr and Incomplete Types</h3>
+
+<p>While <code class="language-plaintext highlighter-rouge">std::unique_ptr</code> manages memory automatically, it introduces a subtle requirement when used with forward-declared types: <em>you must define the destructor of your public class in the source (<code class="language-plaintext highlighter-rouge">.cpp</code>) file, not the header</em>.</p>
+
+<p>This is because <code class="language-plaintext highlighter-rouge">std::unique_ptr</code> needs to generate code to <code class="language-plaintext highlighter-rouge">delete</code> the managed object. To safely delete an object, the compiler must know its size which requires the type to be complete. In the header file (<code class="language-plaintext highlighter-rouge">MyClass.h</code>), <code class="language-plaintext highlighter-rouge">class Impl</code> is only a forward declaration—an incomplete type. If you let the compiler generate the default destructor in the header (or define it inline), it attempts to delete this incomplete type, resulting in a compilation error (typically “deletion of incomplete type”).</p>
+
+<p>The solution is to declare the destructor in the header but define it in the implementation file (<code class="language-plaintext highlighter-rouge">MyClass.cpp</code>). In our code example:</p>
+
+<ol>
+  <li><strong>In <code class="language-plaintext highlighter-rouge">MyClass.h</code></strong>, we declare <code class="language-plaintext highlighter-rouge">~MyClass();</code> without a body. This allows the compilation to proceed without trying to generate the deleter logic yet.</li>
+  <li><strong>In <code class="language-plaintext highlighter-rouge">MyClass.cpp</code></strong>, we define <code class="language-plaintext highlighter-rouge">MyClass::~MyClass() = default;</code> after the full definition of <code class="language-plaintext highlighter-rouge">class Impl</code>. At this point, the compiler sees the full definition of <code class="language-plaintext highlighter-rouge">Impl</code>, knows its size, and can successfully generate the code to delete the <code class="language-plaintext highlighter-rouge">unique_ptr</code>.</li>
+</ol>
+
+<h1 id="why-it-helps-abi-stability">Why it helps ABI stability</h1>
+
+<h3 id="what-is-abi">What is ABI?</h3>
+
+<p>Think of the <strong>API</strong> (Application Programming Interface) as what you write in your code—the names of classes, functions, and their parameters. The <strong>ABI</strong> is the low-level, machine-code version of that. It’s the “binary layout” of your compiled code, including things like:</p>
+<ul>
+  <li>The size of objects in memory.</li>
+  <li>The exact layout and order of member variables.</li>
+  <li>How a <code class="language-plaintext highlighter-rouge">vtable</code> (virtual function table) is structured.</li>
+</ul>
+
+<p>If you ship a library (<code class="language-plaintext highlighter-rouge">.so</code> or <code class="language-plaintext highlighter-rouge">.dll</code>) to your users, their code is compiled against a specific ABI. If you release a new version of your library with a different ABI, all of your users have to recompile their own applications to work with your new library. This is a major headache.</p>
+
+<h3 id="how-pimpl-provides-abi-stability">How Pimpl Provides ABI Stability</h3>
+
+<p>The Pimpl Idiom solves this problem by creating a “firewall” between the public class and its implementation details.</p>
+
+<ol>
+  <li>
+    <p><strong>Stable Public Class</strong>: The public class you provide in your header file contains only a single private pointer. This means the size and layout of the public class never change, regardless of what happens in the implementation. It’s always the size of a pointer (and maybe a vtable pointer if you have virtual functions).</p>
+  </li>
+  <li>
+    <p><strong>Implementation Freedom</strong>: All the private data and functions are hidden away in the separate implementation class, which lives in the <code class="language-plaintext highlighter-rouge">.cpp</code> file. You are now free to change this implementation as much as you want without affecting the ABI. You can:</p>
+    <ul>
+      <li>Add or remove private member variables.</li>
+      <li>Reorder private member variables.</li>
+      <li>Change the internal types or third-party libraries.</li>
+    </ul>
+  </li>
+</ol>
+
+<p>As long as the <strong>public API</strong> (the method signatures in the header) remains the same, your new library’s ABI will be compatible with the old one. This means your users can simply drop in the new <code class="language-plaintext highlighter-rouge">.so</code> or <code class="language-plaintext highlighter-rouge">.dll</code> file without having to recompile their own code.</p>
+
+<p>This is a critical feature for building stable, long-lived libraries.</p>
+
+<h1 id="why-it-speeds-up-builds">Why it speeds up builds</h1>
+
+<p>This is a direct benefit of the “compile firewall” concept we discussed earlier. Here’s a breakdown of the key points:</p>
+
+<table>
+  <thead>
+    <tr>
+      <th style="text-align: left">Impact Area</th>
+      <th style="text-align: left">Without Pimpl</th>
+      <th style="text-align: left">With Pimpl</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="text-align: left"><strong>1. Headers Are Cleaner</strong></td>
+      <td style="text-align: left">When you include a header file, you are also implicitly including all the headers that the class itself uses for its private members (e.g., <code class="language-plaintext highlighter-rouge">&lt;vector&gt;</code>, <code class="language-plaintext highlighter-rouge">&lt;regex&gt;</code>, <code class="language-plaintext highlighter-rouge">&lt;openssl&gt;</code>, etc.). In a large project, this can create a massive chain of dependencies, where one header change can force thousands of files to be recompiled.</td>
+      <td style="text-align: left">The public header file for your class (<code class="language-plaintext highlighter-rouge">MyClass.h</code>) only needs to declare the single pointer to the implementation class (<code class="language-plaintext highlighter-rouge">Impl</code>). It doesn’t need to include any of the headers that the <code class="language-plaintext highlighter-rouge">Impl</code> class uses. All those heavyweight includes are moved to the <code class="language-plaintext highlighter-rouge">.cpp</code> file.</td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><strong>2. Reduces “Rebuild Cascades”</strong></td>
+      <td style="text-align: left">A rebuild cascade occurs when a small change in a header file (like adding or removing a private member) forces a large number of other files to be recompiled. This can make incremental builds very slow.</td>
+      <td style="text-align: left">If you change the private members of <code class="language-plaintext highlighter-rouge">Impl</code>, you only need to recompile the <code class="language-plaintext highlighter-rouge">.cpp</code> file. Files that use <code class="language-plaintext highlighter-rouge">MyClass.h</code> do not need to be recompiled because the header remains unchanged.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3 id="the-bottom-line">The Bottom Line</h3>
+
+<p>The Pimpl Idiom makes your public headers “thin.” This reduces the number of <code class="language-plaintext highlighter-rouge">#include</code> directives in your header files and makes them less fragile. The result is that when you change your implementation, only the <code class="language-plaintext highlighter-rouge">.cpp</code> file needs to be recompiled, which dramatically speeds up <strong>incremental builds</strong> and helps keep large projects manageable.</p>
+
+                </div>
+            </article>
+        </div>
+    </main>
+
+    
+    <div style="text-align:center; font-size:1.2rem; margin:2rem 0;">
+        <strong>You made it to the end! Thanks for reading ❤️</strong><br>
+        <span style="font-size:0.95rem;">If you liked this, share your thoughts on my <a
+                href="https://www.linkedin.com/in/onkarnm/" target="_blank"
+                style="color:#0A66C2; text-decoration:none; font-weight:500;">LinkedIn page</a> — I'd love to hear from
+            you!</span>
+    </div>
+    
+
+    <!-- Newsletter subscription disabled -->
+    <!-- <div style="display:flex;justify-content:center;margin:0.25rem 0;">
+        <!-- Inline “Subscribe” box -->
+<!-- <span style="white-space:nowrap;">
+    🚀 <strong>Level-up your dev skills—get future articles in your inbox!</strong>
+    <form action="https://formspree.io/f/xrbkplpp" method="POST"
+        style="display:inline-flex;gap:.5rem;vertical-align:middle;margin-left:.75rem">
+        <input type="email" name="email" required placeholder="Enter email"
+            style="padding:.4rem .6rem;border:1px solid #ccc;border-radius:4px;max-width:240px;width:100%">
+        <button type="submit"
+            style="padding:.45rem .9rem;background:#007acc;color:#fff;border:none;border-radius:4px;cursor:pointer">
+            Notify&nbsp;Me&nbsp;📬
+        </button>
+    </form>
+</span> -->
+
+<span class="subscribe-inline" style="display:none;">
+    <strong>🚀 Get new articles straight to your inbox!</strong>
+
+    <form action="https://formspree.io/f/xrbkplpp" method="POST"
+        style="display:inline-flex;gap:.5rem;vertical-align:middle">
+        <input type="email" name="email" required placeholder="Enter email">
+        <!-- <button type="submit">Notify Me 📬</button> -->
+        <button type="submit" style="white-space: nowrap;">Notify Me 📬</button>
+
+    </form>
+</span>
+
+<!-- Stay sharp——get new articles straight to your inbox!
+Level-up your dev skills - get new articles in your inbox! -->
+    </div> -->
+
+    <footer class="site-footer">
+        <div class="wrapper">
+            <div class="footer-col-wrapper">
+                <div class="footer-col">
+                    <p>&copy; 2026 Hack. Crash. Transcend.. All rights reserved.</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+</body>
+
+</html>

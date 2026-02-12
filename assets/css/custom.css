@@ -1,0 +1,12 @@
+/* horizontal-image row */
+.img-row {
+  display: flex;
+  gap: 1rem;          /* space between pictures */
+  flex-wrap: wrap;    /* drop below if viewport is too narrow */
+}
+
+.img-row img {
+  flex: 1 1 48%;      /* roughly two per line, shrink when needed */
+  max-width: 100%;    /* never overflow the column */
+  height: auto;       /* keep aspect ratio */
+}
