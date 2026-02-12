@@ -6,6 +6,7 @@ date: 2026-02-11 09:00:00 +0530
 categories: design-patterns
 tags: [Design Patterns, cpp]
 mathjax: true
+mermaid: true
 description: "C++ Observer Pattern notes and case study: Stock Market Ticker."
 published: true
 placement_prio: 0
@@ -287,5 +288,5 @@ int main() {
 }
 ```
 
-### Conclusion
+### **Conclusion**
 The Observer Pattern allows us to keep the `PriceFeed` class decoupled from the specific consumers. The `PriceFeed` only knows about the `IPriceObserver` interface, and any consumer that implements this interface can subscribe to receive updates. This design adheres to the Open-Closed Principle, as we can add new consumer types without modifying the `PriceFeed` code. The dynamic attach/detach functionality also allows for flexible runtime behavior, making it easy to manage which consumers are active at any given time.
