@@ -20,7 +20,7 @@ You’re building a small “market data” module, that receives live stock pri
 3.  A risk monitor that recalculates exposure based on the latest prices.
 4.  An audit logger that writes an immutable log entry for every tick.
 
-A PriceFeed receives live ticks: `(symbol, price, timestamp)`. Each tick must be broadcast to all active consumers immediately. Consumers can come and go at runtime (e.g., UI opens/closes, alert rules enabled/disabled). The PriceFeed should not need to know about the specific consumers or how many there are.
+A `PriceFeed` receives live ticks: `(symbol, price, timestamp)`. Each tick must be broadcast to all active consumers immediately. Consumers can come and go at runtime (e.g., UI opens/closes, alert rules enabled/disabled). The PriceFeed should not need to know about the specific consumers or how many there are.
 
 Multiple independent parts of the system need to react immediately. The PriceFeed **should not be** tightly coupled to any specific consumer. We want a design that allows us to add new consumers without modifying the PriceFeed code.   
 
@@ -129,7 +129,7 @@ class PriceFeed {
     -observers
     +attach(observer)
     +detach(observer)
-    +onNewTick(symbol, price)
+    +onNewTick(symbol, price, timestamp)
 }
 
 class UiTickerDisplay {
@@ -160,13 +160,14 @@ style AuditLogger fill:#fff3e0,stroke:#e65100,stroke-width:2px
 
 ### **C++ Implementation**
 
-First, we define the domain model for a stock tick, which includes the symbol and price.    
+First, we define the domain model for a stock tick, which includes the symbol, price, and timestamp.    
 
 ```cpp
 // Domain Model: The data being observed
 struct Tick {
     std::string symbol;
     double price;
+    long long timestamp; // epoch time in milliseconds
 };
 ```
 Then, we define the Observer interface, which declares the `onUpdate` method that all observers must implement to receive updates from the Subject.   
@@ -218,8 +219,8 @@ public:
     }
 
     // External event trigger
-    void onNewTick(const std::string& symbol, double price) {
-        Tick tick{symbol, price};
+    void onNewTick(const std::string& symbol, double price, long long timestamp) {
+        Tick tick{symbol, price, timestamp};
 
         // Market data arrives here, some processing can be done if needed (e.g., filtering, enrichment)
 
@@ -236,7 +237,7 @@ Then come the concrete observers, which implement the `IPriceObserver` interface
 class UiTickerDisplay : public IPriceObserver {
 public:
     void onUpdate(const Tick& tick) override {
-        std::cout << "[UI Ticker] " << tick.symbol << " is now $" << tick.price << "\n";
+        std::cout << "[UI Ticker] " << tick.symbol << " is now $" << tick.price << " (Time: " << tick.timestamp << ")\n";
     }
 };
 
@@ -252,7 +253,7 @@ public:
 class AuditLogger : public IPriceObserver {
 public:
     void onUpdate(const Tick& tick) override {
-        std::cout << "[Audit] Logged tick for " << tick.symbol << " at " << tick.price << "\n";
+        std::cout << "[Audit] Logged tick for " << tick.symbol << " at $" << tick.price << " @ " << tick.timestamp << "\n";
     }
 };
 ```
@@ -274,15 +275,15 @@ int main() {
     nasdaqFeed.attach(&logger);
 
     std::cout << "--- Tick 1 ---\n";
-    nasdaqFeed.onNewTick("AAPL", 145.20);
+    nasdaqFeed.onNewTick("AAPL", 145.20, 1707810000000LL);
 
     std::cout << "\n--- Tick 2 (Price spike) ---\n";
-    nasdaqFeed.onNewTick("AAPL", 152.45);
+    nasdaqFeed.onNewTick("AAPL", 152.45, 1707810001000LL);
 
     // Dynamic detach
     nasdaqFeed.detach(&ui);
     std::cout << "\n--- Tick 3 (UI closed) ---\n";
-    nasdaqFeed.onNewTick("TSLA", 680.00);
+    nasdaqFeed.onNewTick("TSLA", 680.00, 1707810002000LL);
 
     return 0;
 }
