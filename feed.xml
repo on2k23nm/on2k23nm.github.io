@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.4.1">Jekyll</generator><link href="https://on2k23nm.github.io/feed.xml" rel="self" type="application/atom+xml" /><link href="https://on2k23nm.github.io/" rel="alternate" type="text/html" /><updated>2026-02-12T18:18:57+05:30</updated><id>https://on2k23nm.github.io/feed.xml</id><title type="html">Hack. Crash. Transcend.</title><subtitle>This blog is a collection of my notes and reflections in the pursuit of excellence across Deep Learning, Computer Vision, Mathematics, and Computer Systems.</subtitle><entry><title type="html">Observer Pattern (Case Study): Event Notifications with Pluggable Subscribers</title><link href="https://on2k23nm.github.io/design-patterns/2026/02/11/Design-Patterns-Observer.html" rel="alternate" type="text/html" title="Observer Pattern (Case Study): Event Notifications with Pluggable Subscribers" /><published>2026-02-11T09:00:00+05:30</published><updated>2026-02-11T09:00:00+05:30</updated><id>https://on2k23nm.github.io/design-patterns/2026/02/11/Design-Patterns-Observer</id><content type="html" xml:base="https://on2k23nm.github.io/design-patterns/2026/02/11/Design-Patterns-Observer.html"><![CDATA[<h3 id="problem-statement-stock-price-ticker-with-multiple-consumers"><strong>Problem statement: Stock Price Ticker with Multiple Consumers</strong></h3>
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.4.1">Jekyll</generator><link href="https://on2k23nm.github.io/feed.xml" rel="self" type="application/atom+xml" /><link href="https://on2k23nm.github.io/" rel="alternate" type="text/html" /><updated>2026-02-13T08:00:51+05:30</updated><id>https://on2k23nm.github.io/feed.xml</id><title type="html">Hack. Crash. Transcend.</title><subtitle>This blog is a collection of my notes and reflections in the pursuit of excellence across Deep Learning, Computer Vision, Mathematics, and Computer Systems.</subtitle><entry><title type="html">Observer Pattern (Case Study): Event Notifications with Pluggable Subscribers</title><link href="https://on2k23nm.github.io/design-patterns/2026/02/11/Design-Patterns-Observer.html" rel="alternate" type="text/html" title="Observer Pattern (Case Study): Event Notifications with Pluggable Subscribers" /><published>2026-02-11T09:00:00+05:30</published><updated>2026-02-11T09:00:00+05:30</updated><id>https://on2k23nm.github.io/design-patterns/2026/02/11/Design-Patterns-Observer</id><content type="html" xml:base="https://on2k23nm.github.io/design-patterns/2026/02/11/Design-Patterns-Observer.html"><![CDATA[<h3 id="problem-statement-stock-price-ticker-with-multiple-consumers"><strong>Problem statement: Stock Price Ticker with Multiple Consumers</strong></h3>
 
 <p>You’re building a small “market data” module, that receives live stock price updates (ticks) and needs to notify various parts of the system in real-time. The consumers include:</p>
 <ol>
@@ -8,7 +8,7 @@
   <li>An audit logger that writes an immutable log entry for every tick.</li>
 </ol>
 
-<p>A PriceFeed receives live ticks: <code class="language-plaintext highlighter-rouge">(symbol, price, timestamp)</code>. Each tick must be broadcast to all active consumers immediately. Consumers can come and go at runtime (e.g., UI opens/closes, alert rules enabled/disabled). The PriceFeed should not need to know about the specific consumers or how many there are.</p>
+<p>A <code class="language-plaintext highlighter-rouge">PriceFeed</code> receives live ticks: <code class="language-plaintext highlighter-rouge">(symbol, price, timestamp)</code>. Each tick must be broadcast to all active consumers immediately. Consumers can come and go at runtime (e.g., UI opens/closes, alert rules enabled/disabled). The PriceFeed should not need to know about the specific consumers or how many there are.</p>
 
 <p>Multiple independent parts of the system need to react immediately. The PriceFeed <strong>should not be</strong> tightly coupled to any specific consumer. We want a design that allows us to add new consumers without modifying the PriceFeed code.</p>
 
@@ -133,7 +133,7 @@ class PriceFeed {
     -observers
     +attach(observer)
     +detach(observer)
-    +onNewTick(symbol, price)
+    +onNewTick(symbol, price, timestamp)
 }
 
 class UiTickerDisplay {
@@ -164,12 +164,13 @@ style AuditLogger fill:#fff3e0,stroke:#e65100,stroke-width:2px
 
 <h3 id="c-implementation"><strong>C++ Implementation</strong></h3>
 
-<p>First, we define the domain model for a stock tick, which includes the symbol and price.</p>
+<p>First, we define the domain model for a stock tick, which includes the symbol, price, and timestamp.</p>
 
 <div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// Domain Model: The data being observed</span>
 <span class="k">struct</span> <span class="nc">Tick</span> <span class="p">{</span>
     <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">symbol</span><span class="p">;</span>
     <span class="kt">double</span> <span class="n">price</span><span class="p">;</span>
+    <span class="kt">long</span> <span class="kt">long</span> <span class="n">timestamp</span><span class="p">;</span> <span class="c1">// epoch time in milliseconds</span>
 <span class="p">};</span>
 </code></pre></div></div>
 <p>Then, we define the Observer interface, which declares the <code class="language-plaintext highlighter-rouge">onUpdate</code> method that all observers must implement to receive updates from the Subject.</p>
@@ -218,8 +219,8 @@ style AuditLogger fill:#fff3e0,stroke:#e65100,stroke-width:2px
     <span class="p">}</span>
 
     <span class="c1">// External event trigger</span>
-    <span class="kt">void</span> <span class="nf">onNewTick</span><span class="p">(</span><span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="o">&amp;</span> <span class="n">symbol</span><span class="p">,</span> <span class="kt">double</span> <span class="n">price</span><span class="p">)</span> <span class="p">{</span>
-        <span class="n">Tick</span> <span class="n">tick</span><span class="p">{</span><span class="n">symbol</span><span class="p">,</span> <span class="n">price</span><span class="p">};</span>
+    <span class="kt">void</span> <span class="nf">onNewTick</span><span class="p">(</span><span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="o">&amp;</span> <span class="n">symbol</span><span class="p">,</span> <span class="kt">double</span> <span class="n">price</span><span class="p">,</span> <span class="kt">long</span> <span class="kt">long</span> <span class="n">timestamp</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">Tick</span> <span class="n">tick</span><span class="p">{</span><span class="n">symbol</span><span class="p">,</span> <span class="n">price</span><span class="p">,</span> <span class="n">timestamp</span><span class="p">};</span>
 
         <span class="c1">// Market data arrives here, some processing can be done if needed (e.g., filtering, enrichment)</span>
 
@@ -235,7 +236,7 @@ style AuditLogger fill:#fff3e0,stroke:#e65100,stroke-width:2px
 <span class="k">class</span> <span class="nc">UiTickerDisplay</span> <span class="o">:</span> <span class="k">public</span> <span class="n">IPriceObserver</span> <span class="p">{</span>
 <span class="nl">public:</span>
     <span class="kt">void</span> <span class="n">onUpdate</span><span class="p">(</span><span class="k">const</span> <span class="n">Tick</span><span class="o">&amp;</span> <span class="n">tick</span><span class="p">)</span> <span class="k">override</span> <span class="p">{</span>
-        <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"[UI Ticker] "</span> <span class="o">&lt;&lt;</span> <span class="n">tick</span><span class="p">.</span><span class="n">symbol</span> <span class="o">&lt;&lt;</span> <span class="s">" is now $"</span> <span class="o">&lt;&lt;</span> <span class="n">tick</span><span class="p">.</span><span class="n">price</span> <span class="o">&lt;&lt;</span> <span class="s">"</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+        <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"[UI Ticker] "</span> <span class="o">&lt;&lt;</span> <span class="n">tick</span><span class="p">.</span><span class="n">symbol</span> <span class="o">&lt;&lt;</span> <span class="s">" is now $"</span> <span class="o">&lt;&lt;</span> <span class="n">tick</span><span class="p">.</span><span class="n">price</span> <span class="o">&lt;&lt;</span> <span class="s">" (Time: "</span> <span class="o">&lt;&lt;</span> <span class="n">tick</span><span class="p">.</span><span class="n">timestamp</span> <span class="o">&lt;&lt;</span> <span class="s">")</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
     <span class="p">}</span>
 <span class="p">};</span>
 
@@ -251,7 +252,7 @@ style AuditLogger fill:#fff3e0,stroke:#e65100,stroke-width:2px
 <span class="k">class</span> <span class="nc">AuditLogger</span> <span class="o">:</span> <span class="k">public</span> <span class="n">IPriceObserver</span> <span class="p">{</span>
 <span class="nl">public:</span>
     <span class="kt">void</span> <span class="n">onUpdate</span><span class="p">(</span><span class="k">const</span> <span class="n">Tick</span><span class="o">&amp;</span> <span class="n">tick</span><span class="p">)</span> <span class="k">override</span> <span class="p">{</span>
-        <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"[Audit] Logged tick for "</span> <span class="o">&lt;&lt;</span> <span class="n">tick</span><span class="p">.</span><span class="n">symbol</span> <span class="o">&lt;&lt;</span> <span class="s">" at "</span> <span class="o">&lt;&lt;</span> <span class="n">tick</span><span class="p">.</span><span class="n">price</span> <span class="o">&lt;&lt;</span> <span class="s">"</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+        <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"[Audit] Logged tick for "</span> <span class="o">&lt;&lt;</span> <span class="n">tick</span><span class="p">.</span><span class="n">symbol</span> <span class="o">&lt;&lt;</span> <span class="s">" at $"</span> <span class="o">&lt;&lt;</span> <span class="n">tick</span><span class="p">.</span><span class="n">price</span> <span class="o">&lt;&lt;</span> <span class="s">" @ "</span> <span class="o">&lt;&lt;</span> <span class="n">tick</span><span class="p">.</span><span class="n">timestamp</span> <span class="o">&lt;&lt;</span> <span class="s">"</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
     <span class="p">}</span>
 <span class="p">};</span>
 </code></pre></div></div>
@@ -272,15 +273,15 @@ style AuditLogger fill:#fff3e0,stroke:#e65100,stroke-width:2px
     <span class="n">nasdaqFeed</span><span class="p">.</span><span class="n">attach</span><span class="p">(</span><span class="o">&amp;</span><span class="n">logger</span><span class="p">);</span>
 
     <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"--- Tick 1 ---</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
-    <span class="n">nasdaqFeed</span><span class="p">.</span><span class="n">onNewTick</span><span class="p">(</span><span class="s">"AAPL"</span><span class="p">,</span> <span class="mf">145.20</span><span class="p">);</span>
+    <span class="n">nasdaqFeed</span><span class="p">.</span><span class="n">onNewTick</span><span class="p">(</span><span class="s">"AAPL"</span><span class="p">,</span> <span class="mf">145.20</span><span class="p">,</span> <span class="mi">1707810000000LL</span><span class="p">);</span>
 
     <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"</span><span class="se">\n</span><span class="s">--- Tick 2 (Price spike) ---</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
-    <span class="n">nasdaqFeed</span><span class="p">.</span><span class="n">onNewTick</span><span class="p">(</span><span class="s">"AAPL"</span><span class="p">,</span> <span class="mf">152.45</span><span class="p">);</span>
+    <span class="n">nasdaqFeed</span><span class="p">.</span><span class="n">onNewTick</span><span class="p">(</span><span class="s">"AAPL"</span><span class="p">,</span> <span class="mf">152.45</span><span class="p">,</span> <span class="mi">1707810001000LL</span><span class="p">);</span>
 
     <span class="c1">// Dynamic detach</span>
     <span class="n">nasdaqFeed</span><span class="p">.</span><span class="n">detach</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ui</span><span class="p">);</span>
     <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"</span><span class="se">\n</span><span class="s">--- Tick 3 (UI closed) ---</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
-    <span class="n">nasdaqFeed</span><span class="p">.</span><span class="n">onNewTick</span><span class="p">(</span><span class="s">"TSLA"</span><span class="p">,</span> <span class="mf">680.00</span><span class="p">);</span>
+    <span class="n">nasdaqFeed</span><span class="p">.</span><span class="n">onNewTick</span><span class="p">(</span><span class="s">"TSLA"</span><span class="p">,</span> <span class="mf">680.00</span><span class="p">,</span> <span class="mi">1707810002000LL</span><span class="p">);</span>
 
     <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
 <span class="p">}</span>
